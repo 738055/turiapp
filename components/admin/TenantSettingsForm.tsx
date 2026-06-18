@@ -55,7 +55,7 @@ export function TenantSettingsForm({ tenantId, initialName, initialLocale, tenan
           <Label>Subdomínio</Label>
           <div className="flex items-center rounded-[var(--radius)] border overflow-hidden">
             <Input value={tenantSlug} disabled className="border-0 bg-gray-50 text-gray-400" />
-            <span className="bg-gray-50 border-l px-3 py-2 text-sm text-gray-400">.turiapp.com.br</span>
+            <span className="bg-gray-50 border-l px-3 py-2 text-sm text-gray-400">.{process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br"}</span>
           </div>
           <p className="text-xs text-gray-400">O subdomínio não pode ser alterado. Para domínio próprio, contate o suporte.</p>
         </div>

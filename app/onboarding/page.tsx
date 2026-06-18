@@ -45,6 +45,8 @@ interface OnboardingData {
   custom_domain: string;
 }
 
+const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
+
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -223,12 +225,12 @@ function StepEmpresa({ data, update, updateSlug }: {
             className="border-0 rounded-none flex-1 focus-visible:ring-0"
           />
           <span className="bg-gray-50 border-l px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
-            .turiapp.com.br
+            .{PLATFORM_HOST}
           </span>
         </div>
         {data.slug && (
           <p className="text-xs text-green-600">
-            ✓ Sua loja será: <strong>{data.slug}.turiapp.com.br</strong>
+            ✓ Sua loja será: <strong>{data.slug}.{PLATFORM_HOST}</strong>
           </p>
         )}
       </div>
@@ -304,7 +306,7 @@ function SitePreview({ primaryColor, accentColor, companyName }: {
           <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
         </div>
         <div className="flex-1 bg-white rounded text-xs text-gray-400 px-2 py-0.5 truncate">
-          {companyName.toLowerCase().replace(/\s+/g, "")}.turiapp.com.br
+          {companyName.toLowerCase().replace(/\s+/g, "")}.{PLATFORM_HOST}
         </div>
       </div>
       {/* Mock site */}
@@ -509,7 +511,7 @@ function StepDominio({ data, update }: {
           Sua loja já vai estar no ar em:
         </p>
         <p className="text-sky-600 font-mono mt-1">
-          {data.slug || "suaempresa"}.turiapp.com.br
+          {data.slug || "suaempresa"}.{PLATFORM_HOST}
         </p>
       </div>
       <p className="text-sm text-gray-600">

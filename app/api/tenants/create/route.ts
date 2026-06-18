@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
   // Create subdomain record
   await serviceClient.from("tenant_domains").insert({
     tenant_id: tenant.id,
-    domain: `${d.slug}.turiapp.com.br`,
+    domain: `${d.slug}.${process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br"}`,
     type: "subdomain",
     verification_status: "verified",
     ssl_status: "issued",

@@ -54,6 +54,8 @@ interface AdminSidebarProps {
   role: string;
 }
 
+const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
+
 export function AdminSidebar({ tenantName, tenantSlug, role }: AdminSidebarProps) {
   const pathname = usePathname();
   const visibleItems = navItems.filter((item) => !item.minRole || roleAtLeast(role, item.minRole));
@@ -67,7 +69,7 @@ export function AdminSidebar({ tenantName, tenantSlug, role }: AdminSidebarProps
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white truncate">{tenantName}</p>
-          <p className="text-xs text-slate-400 truncate">{tenantSlug}.turiapp.com.br</p>
+          <p className="text-xs text-slate-400 truncate">{tenantSlug}.{PLATFORM_HOST}</p>
         </div>
       </div>
 
@@ -99,7 +101,7 @@ export function AdminSidebar({ tenantName, tenantSlug, role }: AdminSidebarProps
       {/* View storefront link */}
       <div className="border-t border-white/10 p-3">
         <a
-          href={`https://${tenantSlug}.turiapp.com.br`}
+          href={`https://${tenantSlug}.${PLATFORM_HOST}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-white/5 hover:text-white transition-colors"
