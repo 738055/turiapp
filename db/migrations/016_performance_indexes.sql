@@ -1,0 +1,13 @@
+-- ════════════════════════════════════════════════════════════════
+-- 016 — Performance indexes (Etapa 28). Purely additive: indexes only,
+-- no data or policy changes.
+--
+-- Most hot paths were already indexed in earlier migrations (003 covers
+-- bookings(tenant_id,status), products(tenant_id,status), availability
+-- (product_id,date); 006 leads/quotes; 011 loyalty; 010 webhook retry).
+-- The one gap is ordering a tenant's bookings by creation time — used by
+-- the dashboard "recent bookings", the monthly report, and the new
+-- revenue-trend charts (getRevenueTrend), which scan a tenant's bookings
+-- over a date window. This composite serves both the filter and the order.
+-- ════════════════════════════════════════════════════════════════
+create index if not exists bookings_tenant_created_idx on bookings(tenant_id, created_at desc);

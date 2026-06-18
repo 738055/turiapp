@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* ── Design Tokens (defaults — overridden per-tenant via inline styles on <html>) ── */
+:root {
+  /* Brand */
+  --color-primary: #0ea5e9;
+  --color-secondary: #0369a1;
+  --color-accent: #f59e0b;
+  --color-background: #ffffff;
+  --color-text: #111827;
+
+  /* Shape */
+  --radius: 0.5rem;
+
+  /* Typography */
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-text);
+  --font-sans: var(--font-body);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ── Admin panel base ─────────────────────────────────────────────────────── */
+.admin-layout {
+  --color-sidebar: #1e293b;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-hover: #334155;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
