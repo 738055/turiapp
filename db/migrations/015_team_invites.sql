@@ -1,6 +1,45 @@
 -- ════════════════════════════════════════════════════════════════
 -- 015 — Team invites (Etapa 16). Multi-user per tenant.
 --
+-- NOTA: a partir desta migration as policies usam as funções auxiliares de RLS
+-- (current_user_tenant_id / is_super_admin / has_tenant_role). Elas vivem em
+-- db/policies/rls.sql (que roda no fim), então as criamos aqui também — com
+-- `create or replace`, idempotente: redefini-las no rls.sql depois não causa
+-- conflito. Sem este bloco, a migration falha com
+-- "function current_user_tenant_id() does not exist".
+-- ════════════════════════════════════════════════════════════════
+create or replace function current_user_tenant_id()
+returns uuid language sql stable security definer as $$
+  select tenant_id from tenant_members where user_id = auth.uid() limit 1;
+$$;
+
+create or replace function is_super_admin()
+returns boolean language sql stable security definer as $$
+  select exists (
+    select 1 from tenant_members where user_id = auth.uid() and role = 'super_admin'
+  );
+$$;
+
+create or replace function has_tenant_role(min_role text)
+returns boolean language sql stable security definer as $$
+  select exists (
+    select 1 from tenant_members
+    where user_id = auth.uid()
+      and role = any(
+        case min_role
+          when 'tenant_staff'  then array['tenant_staff','tenant_admin','tenant_owner','super_admin']
+          when 'tenant_admin'  then array['tenant_admin','tenant_owner','super_admin']
+          when 'tenant_owner'  then array['tenant_owner','super_admin']
+          when 'super_admin'   then array['super_admin']
+          else array[]::text[]
+        end
+      )
+  );
+$$;
+
+-- ════════════════════════════════════════════════════════════════
+-- Invites
+--
 -- Security model (additive, never weakens existing protections):
 --   • Only the SHA-256 hash of the invite token is persisted — the plaintext
 --     token lives only in the email link, same pattern as api_keys.key_hash

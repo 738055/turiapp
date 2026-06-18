@@ -63,16 +63,28 @@ export async function POST(req: NextRequest) {
     ip_address: ip,
   });
 
-  // Super admins have no tenant_members row, so /dashboard (gated by tenant
-  // membership) would dead-end back to /login — send them to /admin instead.
+  // Route by account state to avoid the /dashboard ⇄ /login loop:
+  //  • super admin            → /admin (no tenant_members row by design)
+  //  • tem loja (tenant)      → /dashboard
+  //  • ainda sem loja         → /onboarding (criar a loja primeiro)
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("is_super_admin")
     .eq("id", data.user.id)
     .maybeSingle();
 
+  if (profile?.is_super_admin) {
+    return NextResponse.json({ ok: true, redirectTo: "/admin" });
+  }
+
+  const { data: membership } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
   return NextResponse.json({
     ok: true,
-    redirectTo: profile?.is_super_admin ? "/admin" : "/dashboard",
+    redirectTo: membership ? "/dashboard" : "/onboarding",
   });
 }
