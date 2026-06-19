@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Package } from "lucide-react";
+import { Mail, Phone, Package, MessageCircle } from "lucide-react";
 import type { LeadStatus } from "@/types";
 
 interface LeadItem {
@@ -17,6 +17,7 @@ interface LeadItem {
   product_id: string | null;
   product_title: string | null;
   created_at: string;
+  conversation_id?: string | null;
 }
 
 const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
@@ -87,6 +88,14 @@ export function LeadsKanban({ initialLeads }: { initialLeads: LeadItem[] }) {
                         ))}
                       </select>
                     </div>
+                    {lead.conversation_id && (
+                      <Link
+                        href={`/conversas?c=${lead.conversation_id}`}
+                        className="flex items-center justify-center gap-1 rounded-md bg-green-50 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> Abrir conversa
+                      </Link>
+                    )}
                     <Link
                       href={`/cotacoes/nova?lead_id=${lead.id}${lead.product_id ? `&product_id=${lead.product_id}` : ""}`}
                       className="block text-center text-xs font-medium text-sky-600 hover:underline pt-1"

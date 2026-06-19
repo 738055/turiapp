@@ -2,9 +2,9 @@
 
 > Última atualização: 2026-06-18
 > Build: ✅ Passing (`pnpm run build`) · TypeScript ✅ sem erros
-> Rotas de API: 89 · Páginas: 64
+> Rotas de API: 99 · Páginas: 65
 > Testes: ✅ 72/72 passando (`pnpm test`)
-> Migrations: 22 (`db/migrations/001` a `022`) · RLS em 100% das tabelas públicas
+> Migrations: 25 (`db/migrations/001` a `025`) · RLS em 100% das tabelas públicas
 
 ---
 
@@ -226,6 +226,13 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - Ações: enviar email, enviar WhatsApp, notificação interna, mover lead de status
 - Worker `GET /api/cron/automations` (Vercel Cron) processa a fila `automation_runs` com idempotência (`unique(automation_id, entity_type, entity_id)`)
 - Sino de notificações internas no painel (`/notificacoes`, `/api/notifications/list`, `/api/notifications/mark-read`)
+
+### Central de Atendimento — chat WhatsApp bidirecional (CRM)
+- Migration `023_conversations.sql`: `conversations` (thread por telefone/cliente, `last_inbound_at` p/ janela 24h, `unread_count`) + `messages` (inbound/outbound, dedup por `wa_message_id`). RLS staff
+- **Webhook de entrada** `/api/webhooks/whatsapp?tenant=<slug>`: recebe mensagens do 360dialog (formato WhatsApp Cloud), cria/atualiza conversa, vincula cliente por telefone, grava mensagem (`lib/conversations/store.ts`)
+- **API**: `conversations/list`, `/messages` (marca lida + traz reservas do cliente vinculado), `/send` — **texto livre dentro da janela de 24h da Meta, template aprovado fora dela**, com circuit breaker; `sendWhatsAppText` no 360dialog
+- **UI** `/conversas` (`ChatInbox`): lista de conversas + thread estilo chat + caixa de resposta + contexto do cliente (reservas), com polling. Item "Atendimento" na sidebar. A URL do webhook é exibida na tela de WhatsApp para o tenant colar no 360dialog
+- **CRM no chat** (migration `024`): atribuir conversa a um atendente da equipe, status aberta/resolvida, etiquetas (`tags`), notas internas (`conversation_notes`), e **virar cliente/criar lead** direto da conversa (`/api/conversations/update|note|convert`). Filtros (Todas/Abertas/Resolvidas/Minhas). **Card do lead no kanban tem "Abrir conversa"** (linka por `lead_id` ou telefone) e a conversa abre direto via `/conversas?c=<id>`
 
 ### WhatsApp Business API (Etapa 33)
 - Migration `009_whatsapp_business.sql`: credenciais criptografadas em `tenant_integrations`, tabela `whatsapp_logs`

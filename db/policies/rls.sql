@@ -509,3 +509,31 @@ create policy "affiliate_referrals_own" on affiliate_referrals
 drop policy if exists "affiliate_referrals_super_admin" on affiliate_referrals;
 create policy "affiliate_referrals_super_admin" on affiliate_referrals
   for all using (is_super_admin());
+
+-- ─────────────────────────────────────────────────────────────
+-- CENTRAL DE ATENDIMENTO — CONVERSAS & MENSAGENS (Etapa chat)
+-- Staff do tenant gerencia; escrita de inbound via service_role no webhook.
+-- ─────────────────────────────────────────────────────────────
+alter table conversations enable row level security;
+drop policy if exists "conversations_own_manage" on conversations;
+create policy "conversations_own_manage" on conversations
+  for all using (tenant_id = current_user_tenant_id() and has_tenant_role('tenant_staff'));
+drop policy if exists "conversations_super_admin" on conversations;
+create policy "conversations_super_admin" on conversations
+  for all using (is_super_admin());
+
+alter table messages enable row level security;
+drop policy if exists "messages_own_manage" on messages;
+create policy "messages_own_manage" on messages
+  for all using (tenant_id = current_user_tenant_id() and has_tenant_role('tenant_staff'));
+drop policy if exists "messages_super_admin" on messages;
+create policy "messages_super_admin" on messages
+  for all using (is_super_admin());
+
+alter table conversation_notes enable row level security;
+drop policy if exists "conversation_notes_own_manage" on conversation_notes;
+create policy "conversation_notes_own_manage" on conversation_notes
+  for all using (tenant_id = current_user_tenant_id() and has_tenant_role('tenant_staff'));
+drop policy if exists "conversation_notes_super_admin" on conversation_notes;
+create policy "conversation_notes_super_admin" on conversation_notes
+  for all using (is_super_admin());

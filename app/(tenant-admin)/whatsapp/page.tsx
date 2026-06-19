@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
+import { CopyField } from "@/components/admin/CopyField";
+import { whatsappWebhookToken } from "@/lib/whatsapp/webhook-auth";
 
 export default async function WhatsAppPage() {
   const supabase = await createClient();
@@ -9,9 +11,13 @@ export default async function WhatsAppPage() {
 
   const { data: membership } = await supabase
     .from("tenant_members")
-    .select("tenant_id")
+    .select("tenant_id, tenants(slug)")
     .eq("user_id", user!.id)
     .single();
+
+  const slug = (membership?.tenants as unknown as { slug: string } | null)?.slug ?? "";
+  const appHost = process.env.NEXT_PUBLIC_APP_HOST ?? `app.${process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br"}`;
+  const webhookUrl = `https://${appHost}/api/webhooks/whatsapp?tenant=${slug}&token=${whatsappWebhookToken(membership!.tenant_id)}`;
 
   const { data: logs } = await supabase
     .from("whatsapp_logs")
@@ -29,9 +35,26 @@ export default async function WhatsAppPage() {
       <div>
         <h1 className="text-2xl font-bold">WhatsApp</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Histórico de mensagens disparadas via WhatsApp Business API.
+          Receba e responda mensagens em <strong>Atendimento</strong>, e acompanhe os disparos abaixo.
         </p>
       </div>
+
+      {/* Webhook para receber mensagens */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Receber mensagens (Central de Atendimento)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-500">
+            Para as mensagens dos seus clientes aparecerem em <strong>Atendimento</strong>, cole esta URL no
+            campo de <strong>Webhook</strong> da sua conta 360dialog:
+          </p>
+          <CopyField value={webhookUrl} />
+          <p className="text-xs text-gray-400">
+            Depois de configurar, qualquer mensagem recebida no seu WhatsApp abre uma conversa no painel.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-3 gap-4 max-w-xl">
         <Card>

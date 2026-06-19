@@ -48,6 +48,7 @@ export default async function TenantAdminLayout({
   return (
     <div className="admin-layout flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar
+        tenantId={membership.tenant_id}
         tenantName={tenant?.name ?? ""}
         tenantSlug={tenant?.slug ?? ""}
         role={membership.role}

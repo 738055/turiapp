@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ import {
   FileSignature,
   Zap,
   MessageCircle,
+  Inbox,
   BarChart3,
   Gift,
   Star,
@@ -34,6 +36,7 @@ const navItems: { label: string; href: string; icon: typeof LayoutDashboard; min
   { label: "Leads", href: "/leads", icon: Target },
   { label: "Cotações", href: "/cotacoes", icon: FileSignature },
   { label: "Clientes", href: "/clientes", icon: Users },
+  { label: "Atendimento", href: "/conversas", icon: Inbox },
   { label: "Automações", href: "/automacoes", icon: Zap },
   { label: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3 },
@@ -49,6 +52,7 @@ const navItems: { label: string; href: string; icon: typeof LayoutDashboard; min
 ];
 
 interface AdminSidebarProps {
+  tenantId: string;
   tenantName: string;
   tenantSlug: string;
   role: string;
@@ -56,9 +60,22 @@ interface AdminSidebarProps {
 
 const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
 
-export function AdminSidebar({ tenantName, tenantSlug, role }: AdminSidebarProps) {
+export function AdminSidebar({ tenantId, tenantName, tenantSlug, role }: AdminSidebarProps) {
   const pathname = usePathname();
   const visibleItems = navItems.filter((item) => !item.minRole || roleAtLeast(role, item.minRole));
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    const load = () => {
+      fetch(`/api/conversations/unread-count?tenant_id=${tenantId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d) setUnread(d.count ?? 0); })
+        .catch(() => {});
+    };
+    load();
+    const i = setInterval(load, 20000);
+    return () => clearInterval(i);
+  }, [tenantId]);
 
   return (
     <aside className="flex h-full w-60 flex-col bg-[var(--color-sidebar,#1e293b)] text-[var(--color-sidebar-text,#cbd5e1)]">
@@ -90,7 +107,12 @@ export function AdminSidebar({ tenantName, tenantSlug, role }: AdminSidebarProps
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
               {item.label}
-              {isActive && (
+              {item.href === "/conversas" && unread > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold text-white">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+              {isActive && !(item.href === "/conversas" && unread > 0) && (
                 <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
               )}
             </Link>
