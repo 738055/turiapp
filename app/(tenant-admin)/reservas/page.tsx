@@ -41,7 +41,7 @@ export default async function ReservasPage({
 
   const { data: bookings } = await query;
 
-  const statusFilters = ["", "pending", "confirmed", "completed", "cancelled"];
+  const statusFilters = ["", "pending", "confirmed", "completed", "cancelled", "refunded"];
 
   return (
     <div className="space-y-5">

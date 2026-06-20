@@ -25,6 +25,11 @@ const schema = z.object({
   tiktok_pixel_id: z.string().max(50).optional(),
   google_ads_id: z.string().max(50).optional(),
   whatsapp_number: z.string().max(30).optional(),
+  floating_whatsapp_enabled: z.boolean().default(false),
+  floating_whatsapp_mode: z.enum(["native", "script"]).default("native"),
+  floating_whatsapp_label: z.string().max(80).optional(),
+  floating_whatsapp_message: z.string().max(500).optional(),
+  floating_whatsapp_script: z.string().max(10000).optional(),
   cookie_consent_enabled: z.boolean().default(true),
   cookie_consent_text: z.string().max(500).optional(),
   privacy_policy_url: z.string().url().optional().or(z.literal("")),
@@ -65,7 +70,10 @@ export async function POST(req: NextRequest) {
       const v = (fields as Record<string, unknown>)[f];
       return typeof v === "string" && v.trim() !== "";
     });
-    if (settingPixel) {
+    const settingScriptWidget =
+      fields.floating_whatsapp_mode === "script" ||
+      (typeof fields.floating_whatsapp_script === "string" && fields.floating_whatsapp_script.trim() !== "");
+    if (settingPixel || settingScriptWidget) {
       return NextResponse.json(
         { error: "Pixels e Analytics não estão incluídos no seu plano. Faça upgrade para o Pro para ativar rastreamento de marketing." },
         { status: 403 }

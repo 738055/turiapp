@@ -27,6 +27,11 @@ export function IntegrationForm({ tenantId, initialValues: iv, pixelsAllowed = t
     tiktok_pixel_id: String(iv.tiktok_pixel_id ?? ""),
     google_ads_id: String(iv.google_ads_id ?? ""),
     whatsapp_number: String(iv.whatsapp_number ?? ""),
+    floating_whatsapp_enabled: iv.floating_whatsapp_enabled === true,
+    floating_whatsapp_mode: String(iv.floating_whatsapp_mode ?? "native"),
+    floating_whatsapp_label: String(iv.floating_whatsapp_label ?? "Fale conosco"),
+    floating_whatsapp_message: String(iv.floating_whatsapp_message ?? "Ola! Vim pelo site e gostaria de atendimento."),
+    floating_whatsapp_script: String(iv.floating_whatsapp_script ?? ""),
     cookie_consent_enabled: iv.cookie_consent_enabled !== false,
     cookie_consent_text: String(iv.cookie_consent_text ?? ""),
     privacy_policy_url: String(iv.privacy_policy_url ?? ""),
@@ -41,10 +46,15 @@ export function IntegrationForm({ tenantId, initialValues: iv, pixelsAllowed = t
     setError(null);
     setSaved(false);
     startTransition(async () => {
+      const payload = {
+        ...form,
+        floating_whatsapp_mode: pixelsAllowed ? form.floating_whatsapp_mode : "native",
+        floating_whatsapp_script: pixelsAllowed ? form.floating_whatsapp_script : "",
+      };
       const res = await fetch("/api/integrations/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenant_id: tenantId, ...form }),
+        body: JSON.stringify({ tenant_id: tenantId, ...payload }),
       });
       if (!res.ok) {
         const body = await res.json();
@@ -111,13 +121,94 @@ export function IntegrationForm({ tenantId, initialValues: iv, pixelsAllowed = t
       {/* WhatsApp */}
       <Card>
         <CardHeader><CardTitle className="text-base">WhatsApp padrão</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {field(
             "Número com código do país",
             "whatsapp_number",
             "+5511999999999",
             "Número padrão para produtos no modo WhatsApp."
           )}
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="floating_whatsapp_enabled"
+                checked={form.floating_whatsapp_enabled}
+                onChange={(e) => update("floating_whatsapp_enabled", e.target.checked)}
+                className="mt-1 h-4 w-4"
+              />
+              <div>
+                <Label htmlFor="floating_whatsapp_enabled" className="cursor-pointer text-sm font-semibold">
+                  Botao flutuante no site
+                </Label>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Mostra um atalho fixo de WhatsApp em todas as paginas da loja.
+                </p>
+              </div>
+            </div>
+
+            {form.floating_whatsapp_enabled && (
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "native", label: "Botao nosso" },
+                    { value: "script", label: "Script externo" },
+                  ].map((option) => {
+                    const disabled = option.value === "script" && !pixelsAllowed;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => {
+                          if (!disabled) update("floating_whatsapp_mode", option.value);
+                        }}
+                        className={`rounded-lg border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                          form.floating_whatsapp_mode === option.value
+                            ? "border-sky-500 bg-sky-50 text-sky-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {form.floating_whatsapp_mode === "native" ? (
+                  <div className="space-y-3">
+                    {field("Texto do botao", "floating_whatsapp_label", "Fale conosco")}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Mensagem inicial</Label>
+                      <textarea
+                        value={form.floating_whatsapp_message}
+                        onChange={(e) => update("floating_whatsapp_message", e.target.value)}
+                        className="h-20 w-full resize-none rounded border border-gray-200 px-3 py-2 text-sm"
+                        placeholder="Ola! Vim pelo site e gostaria de atendimento."
+                      />
+                    </div>
+                  </div>
+                ) : pixelsAllowed ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Script do widget de WhatsApp</Label>
+                    <textarea
+                      value={form.floating_whatsapp_script}
+                      onChange={(e) => update("floating_whatsapp_script", e.target.value)}
+                      className="h-28 w-full resize-none rounded border border-gray-200 px-3 py-2 font-mono text-xs"
+                      placeholder={'<script src="https://..."></script>'}
+                    />
+                    <p className="text-xs text-gray-400">
+                      Cole aqui o snippet do fornecedor. Use apenas scripts confiaveis.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                    Scripts externos fazem parte do Pro. Use o botao nosso neste plano.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

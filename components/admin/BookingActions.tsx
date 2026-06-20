@@ -9,13 +9,13 @@ import { CheckCircle, XCircle, Mail, RotateCcw } from "lucide-react";
 interface BookingActionsProps {
   bookingId: string;
   currentStatus: string;
-  customerEmail: string;
   tenantId: string;
 }
 
-export function BookingActions({ bookingId, currentStatus, customerEmail, tenantId }: BookingActionsProps) {
+export function BookingActions({ bookingId, currentStatus, tenantId }: BookingActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [status, setStatus] = useState(currentStatus);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +34,7 @@ export function BookingActions({ bookingId, currentStatus, customerEmail, tenant
         return;
       }
       setMessage(body.message ?? "Ação executada com sucesso.");
+      if (body.status) setStatus(String(body.status));
       router.refresh();
     });
   }
@@ -43,7 +44,7 @@ export function BookingActions({ bookingId, currentStatus, customerEmail, tenant
       <CardHeader><CardTitle className="text-base">Ações</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          {currentStatus === "pending" && (
+          {status === "pending" && (
             <Button
               size="sm"
               onClick={() => doAction("confirm")}
@@ -53,7 +54,7 @@ export function BookingActions({ bookingId, currentStatus, customerEmail, tenant
               <CheckCircle className="h-4 w-4 mr-1" /> Confirmar reserva
             </Button>
           )}
-          {["pending", "confirmed"].includes(currentStatus) && (
+          {["pending", "confirmed"].includes(status) && (
             <Button
               size="sm"
               variant="outline"
@@ -64,7 +65,7 @@ export function BookingActions({ bookingId, currentStatus, customerEmail, tenant
               <XCircle className="h-4 w-4 mr-1" /> Cancelar reserva
             </Button>
           )}
-          {currentStatus === "confirmed" && (
+          {status === "confirmed" && (
             <Button
               size="sm"
               variant="outline"
@@ -72,6 +73,17 @@ export function BookingActions({ bookingId, currentStatus, customerEmail, tenant
               disabled={isPending}
             >
               <CheckCircle className="h-4 w-4 mr-1" /> Marcar como concluída
+            </Button>
+          )}
+          {["confirmed", "completed", "cancelled"].includes(status) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => doAction("refund")}
+              disabled={isPending}
+              className="border-amber-200 text-amber-700 hover:bg-amber-50"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" /> Marcar reembolso
             </Button>
           )}
           <Button

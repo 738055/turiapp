@@ -187,6 +187,11 @@ export interface Product {
   status: "draft" | "published" | "archived";
   sale_mode: SaleMode;
   whatsapp_number: string | null;
+  floating_whatsapp_enabled: boolean;
+  floating_whatsapp_mode: "native" | "script";
+  floating_whatsapp_label: string | null;
+  floating_whatsapp_message: string | null;
+  floating_whatsapp_script: string | null;
   extra_data: Record<string, unknown>;
   seo_title: string | null;
   seo_description: string | null;

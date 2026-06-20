@@ -25,7 +25,7 @@ import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import { createServiceClient } from "@/lib/supabase/server";
 import { featureAllowed, getPlanLimits } from "@/lib/plans/limits";
-import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
+import { getCachedPublicTheme } from "@/lib/public-cache";
 import { absoluteUrl, canonicalUrl, formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 import {
   lowestRate,
@@ -93,8 +93,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!tenantId && process.env.NODE_ENV !== "development") notFound();
 
-  const [product, theme] = await Promise.all([
-    getCachedPublicProduct(tenantId ?? "", slug),
+  const service = createServiceClient();
+  const [{ data: product }, theme] = await Promise.all([
+    service
+      .from("products")
+      .select("*, rates:product_rates(*)")
+      .eq("tenant_id", tenantId ?? "")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .single(),
     getCachedPublicTheme(tenantId ?? ""),
   ]);
 
@@ -112,9 +119,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const rate = lowestRate(productForSale);
   const primaryColor = t?.primary_color ?? "#0ea5e9";
   const secondaryColor = t?.secondary_color ?? "#111827";
-  const service = createServiceClient();
-
-  const [{ data: reviews }, { data: paymentAccounts }, planLimits] = await Promise.all([
+  const [{ data: reviews }, { data: paymentAccounts }, { data: integrations }, planLimits] = await Promise.all([
     service
       .from("reviews")
       .select("id, customer_name, rating, body, submitted_at")
@@ -129,6 +134,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
       .select("provider, status")
       .eq("tenant_id", tenantId ?? "")
       .eq("status", "connected"),
+    service
+      .from("tenant_integrations")
+      .select("whatsapp_number")
+      .eq("tenant_id", tenantId ?? "")
+      .maybeSingle(),
     tenantId ? getPlanLimits(service, tenantId) : Promise.resolve(null),
   ]);
 
@@ -137,6 +147,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const canReserveOnline = p.sale_mode === "booking" && bookingEngineAllowed && publicRates.length > 0;
   const actionProduct = {
     ...productForSale,
+    whatsapp_number: productForSale.whatsapp_number ?? integrations?.whatsapp_number ?? null,
     sale_mode: canReserveOnline ? "booking" : "whatsapp",
   } as Product & { rates?: ProductRate[] };
 

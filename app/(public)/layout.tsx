@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { AnalyticsScripts, GTMNoScript } from "@/components/public/AnalyticsScripts";
 import { CookieConsent } from "@/components/public/CookieConsent";
 import { CartButton } from "@/components/public/CartButton";
+import { FloatingWhatsAppButton } from "@/components/public/FloatingWhatsAppButton";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import type { NavItem, Theme } from "@/types";
 
@@ -17,6 +18,12 @@ interface TenantPublicData {
     facebook_pixel_id?: string | null;
     tiktok_pixel_id?: string | null;
     head_scripts?: string | null;
+    whatsapp_number?: string | null;
+    floating_whatsapp_enabled?: boolean | null;
+    floating_whatsapp_mode?: "native" | "script" | string | null;
+    floating_whatsapp_label?: string | null;
+    floating_whatsapp_message?: string | null;
+    floating_whatsapp_script?: string | null;
     cookie_consent_enabled?: boolean;
     cookie_consent_text?: string | null;
     privacy_policy_url?: string | null;
@@ -31,7 +38,7 @@ async function getTenantPublicData(tenantId: string): Promise<TenantPublicData> 
     supabase
       .from("tenant_integrations")
       .select(
-        "google_analytics_id,google_tag_manager_id,facebook_pixel_id,tiktok_pixel_id,head_scripts,cookie_consent_enabled,cookie_consent_text,privacy_policy_url"
+        "google_analytics_id,google_tag_manager_id,facebook_pixel_id,tiktok_pixel_id,head_scripts,whatsapp_number,floating_whatsapp_enabled,floating_whatsapp_mode,floating_whatsapp_label,floating_whatsapp_message,floating_whatsapp_script,cookie_consent_enabled,cookie_consent_text,privacy_policy_url"
       )
       .eq("tenant_id", tenantId)
       .single(),
@@ -90,6 +97,15 @@ export default async function PublicLayout({
 
       {/* Floating multi-product cart indicator (hidden when empty) */}
       <CartButton />
+
+      <FloatingWhatsAppButton
+        enabled={integrations?.floating_whatsapp_enabled}
+        mode={integrations?.floating_whatsapp_mode}
+        phone={integrations?.whatsapp_number}
+        label={integrations?.floating_whatsapp_label}
+        message={integrations?.floating_whatsapp_message}
+        script={integrations?.floating_whatsapp_script}
+      />
 
       {/* LGPD cookie consent banner */}
       {showConsent && (

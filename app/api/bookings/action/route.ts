@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail, renderVoucherHtml, renderReviewRequestEmailHtml } from "@/lib/email/resend";
@@ -13,19 +14,21 @@ import { generateReviewToken, hashReviewToken } from "@/lib/reviews/token";
 const schema = z.object({
   booking_id: z.string().uuid(),
   tenant_id: z.string().uuid(),
-  action: z.enum(["confirm", "cancel", "complete", "resend_voucher"]),
+  action: z.enum(["confirm", "cancel", "complete", "refund", "resend_voucher"]),
 });
 
 const ACTION_STATUS: Record<string, string> = {
   confirm: "confirmed",
   cancel: "cancelled",
   complete: "completed",
+  refund: "refunded",
 };
 
 const ACTION_EVENT: Record<string, WebhookEventType> = {
   confirm: "booking.confirmed",
   cancel: "booking.cancelled",
   complete: "booking.completed",
+  refund: "booking.refunded",
 };
 
 export async function POST(req: NextRequest) {
@@ -116,11 +119,31 @@ export async function POST(req: NextRequest) {
   }
 
   // Status change
+  const allowedTransitions: Record<string, string[]> = {
+    pending: ["confirm", "cancel"],
+    confirmed: ["cancel", "complete", "refund"],
+    completed: ["refund"],
+    cancelled: ["refund"],
+  };
+  if (!allowedTransitions[booking.status]?.includes(action)) {
+    return NextResponse.json({ error: "Acao indisponivel para o status atual da reserva." }, { status: 400 });
+  }
+
   const newStatus = ACTION_STATUS[action];
-  await service
+  const { data: updatedBooking, error: updateError } = await service
     .from("bookings")
     .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .eq("id", booking_id);
+    .eq("id", booking_id)
+    .eq("tenant_id", tenant_id)
+    .select("id, status")
+    .single();
+
+  if (updateError || !updatedBooking) {
+    return NextResponse.json(
+      { error: updateError?.message ?? "Nao foi possivel atualizar a reserva." },
+      { status: 500 }
+    );
+  }
 
   await writeAuditLog({
     tenant_id,
@@ -152,9 +175,13 @@ export async function POST(req: NextRequest) {
     confirm: "Reserva confirmada com sucesso.",
     cancel: "Reserva cancelada.",
     complete: "Reserva marcada como concluída.",
+    refund: "Reserva marcada como reembolsada.",
   };
 
-  return NextResponse.json({ message: labels[action] });
+  revalidatePath("/reservas");
+  revalidatePath(`/reservas/${booking_id}`);
+
+  return NextResponse.json({ message: labels[action], status: updatedBooking.status });
 }
 
 // Creates a one-time review invite for a completed booking and emails the link.

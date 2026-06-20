@@ -97,7 +97,6 @@ export default async function BookingDetailPage({ params }: PageProps) {
       <BookingActions
         bookingId={booking.id}
         currentStatus={booking.status}
-        customerEmail={booking.customer_email}
         tenantId={membership!.tenant_id}
       />
     </div>
