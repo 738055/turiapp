@@ -29,7 +29,7 @@ export default async function DominioPage() {
     (domainRow?.vercel_config as { verification?: Array<{ type: string; domain: string; value: string; reason: string }> } | null)
       ?.verification ?? [];
 
-  const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? "turiapp.com.br";
+  const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? "turiapp.com.br";
 
   const limits = await getPlanLimits(service, tenantId);
   const customDomainAllowed = featureAllowed(limits, "custom_domain");

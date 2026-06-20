@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
 const ADMIN_HOST = process.env.NEXT_PUBLIC_ADMIN_HOST ?? `admin.${PLATFORM_HOST}`;
 const APP_HOST = process.env.NEXT_PUBLIC_APP_HOST ?? `app.${PLATFORM_HOST}`;
+const STOREFRONT_STATUSES = ["active", "trial"];
 
 /**
  * Resolve o tenant a partir do host da request.
@@ -41,7 +42,7 @@ async function resolveTenantFromHost(
 
   if (domainRow) {
     const t = domainRow.tenants as unknown as { slug: string; status: string } | null;
-    if (t && t.status === "active") {
+    if (t && STOREFRONT_STATUSES.includes(t.status)) {
       return { tenantId: domainRow.tenant_id, tenantSlug: t.slug };
     }
     return null;
@@ -54,7 +55,7 @@ async function resolveTenantFromHost(
       .from("tenants")
       .select("id, slug")
       .eq("slug", slug)
-      .eq("status", "active")
+      .in("status", STOREFRONT_STATUSES)
       .single();
 
     if (tenant) {

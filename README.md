@@ -84,3 +84,23 @@ local, destaques, inclui, nao inclui, roteiro e informacoes importantes.
 
 Use `GO-LIVE.md` como runbook de producao. O `STATUS.md` e a fonte rapida do
 estado atual, pendencias e mapa de arquivos.
+
+## Dominio De Teste Para Tenants
+
+Para usar um dominio como `nitromethanebrasil.com.br` em testes de lojas
+(`rotas-e-horizontes.nitromethanebrasil.com.br`), adicione no mesmo projeto da
+Vercel:
+
+- `nitromethanebrasil.com.br`
+- `*.nitromethanebrasil.com.br`
+
+E configure as envs do deploy:
+
+```env
+NEXT_PUBLIC_PLATFORM_HOST=nitromethanebrasil.com.br
+NEXT_PUBLIC_APP_HOST=app.nitromethanebrasil.com.br
+NEXT_PUBLIC_ADMIN_HOST=admin.nitromethanebrasil.com.br
+```
+
+Sem o wildcard associado ao projeto, a Vercel retorna `DEPLOYMENT_NOT_FOUND`
+antes da TuriApp receber a request.

@@ -6,20 +6,30 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { addDomainToVercel } from "@/lib/vercel";
 import { getPlanLimits, featureAllowed } from "@/lib/plans/limits";
 
+const fqdnRegex = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+
 const schema = z.object({
   domain: z
     .string()
     .min(4)
     .max(253)
-    .regex(/^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/, {
-      message: "Domínio inválido. Use o formato: meusite.com.br",
+    .transform((value) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/.*$/, "")
+        .replace(/\.$/, "")
+    )
+    .refine((value) => fqdnRegex.test(value), {
+      message: "Dominio invalido. Use o formato: meusite.com.br ou loja.meusite.com.br",
     }),
 });
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
 
   const { data: membership } = await supabase
     .from("tenant_members")
@@ -27,30 +37,30 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .single();
 
-  if (!membership) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: "Sem permissao." }, { status: 403 });
   if (!["tenant_owner", "tenant_admin"].includes(membership.role)) {
-    return NextResponse.json({ error: "Apenas proprietários podem configurar domínios." }, { status: 403 });
+    return NextResponse.json({ error: "Apenas proprietarios podem configurar dominios." }, { status: 403 });
   }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Domínio inválido." }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dominio invalido." }, { status: 400 });
   }
 
   const { domain } = parsed.data;
   const service = createServiceClient();
 
-  // Plan gate: custom domains are a paid feature (not in Básico).
+  // Plan gate: custom domains are a paid feature (not in Basico).
   const planLimits = await getPlanLimits(service, membership.tenant_id);
   if (!featureAllowed(planLimits, "custom_domain")) {
     return NextResponse.json(
-      { error: "Domínio próprio não está incluído no seu plano. Faça upgrade para o Pro para usar seu domínio." },
+      { error: "Dominio proprio nao esta incluido no seu plano. Faca upgrade para o Pro para usar seu dominio." },
       { status: 403 }
     );
   }
 
-  // Check domain is not already in use by another tenant
+  // Check domain is not already in use by another tenant.
   const { data: existing } = await service
     .from("tenant_domains")
     .select("tenant_id")
@@ -58,15 +68,14 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (existing && existing.tenant_id !== membership.tenant_id) {
-    return NextResponse.json({ error: "Este domínio já está em uso." }, { status: 409 });
+    return NextResponse.json({ error: "Este dominio ja esta em uso." }, { status: 409 });
   }
 
-  // Add to Vercel
   let vercelResult;
   try {
     vercelResult = await addDomainToVercel(domain);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Erro ao registrar domínio.";
+    const msg = err instanceof Error ? err.message : "Erro ao registrar dominio.";
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
