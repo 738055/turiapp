@@ -65,6 +65,12 @@ interface ProductExtraForm {
   not_included: string;
   itinerary: string;
   important_info: string;
+  cancellation_policy: string;
+  guide_languages: string;
+  gallery: string;
+  capacity: string;
+  bedrooms: string;
+  bathrooms: string;
 }
 
 interface ProductFormProps {
@@ -106,6 +112,12 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
       not_included: linesFromArray(data.not_included),
       itinerary: itineraryToText(data.itinerary),
       important_info: stringValue(data.important_info),
+      cancellation_policy: stringValue(data.cancellation_policy),
+      guide_languages: linesFromArray(data.guide_languages),
+      gallery: linesFromArray(data.gallery),
+      capacity: stringValue(data.capacity),
+      bedrooms: stringValue(data.bedrooms),
+      bathrooms: stringValue(data.bathrooms),
     };
   });
 
@@ -315,11 +327,36 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
               <Input value={extra.location} onChange={(e) => updateExtra("location", e.target.value)} placeholder="Ex: Foz do Iguacu, Gramado e Canela" />
             </div>
           </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label>Capacidade</Label>
+              <Input value={extra.capacity} onChange={(e) => updateExtra("capacity", e.target.value)} placeholder="Ex: Ate 4 pessoas" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quartos</Label>
+              <Input value={extra.bedrooms} onChange={(e) => updateExtra("bedrooms", e.target.value)} placeholder="Ex: 2 quartos" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Banheiros</Label>
+              <Input value={extra.bathrooms} onChange={(e) => updateExtra("bathrooms", e.target.value)} placeholder="Ex: 1 banheiro" />
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <TextListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder={"Transfer incluso\nGuia local\nCancelamento facilitado"} />
             <TextListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder={"Transporte\nIngresso\nAcompanhamento"} />
             <TextListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder={"Alimentacao\nDespesas pessoais"} />
             <TextListField label="Informacoes importantes" value={extra.important_info} onChange={(value) => updateExtra("important_info", value)} placeholder="Documentos, regras de cancelamento, ponto de encontro..." />
+            <TextListField label="Idiomas do guia" value={extra.guide_languages} onChange={(value) => updateExtra("guide_languages", value)} placeholder={"Portugues\nEspanhol\nIngles"} />
+            <TextListField label="Galeria adicional por URL" value={extra.gallery} onChange={(value) => updateExtra("gallery", value)} placeholder={"https://...\nhttps://..."} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Politica de cancelamento</Label>
+            <textarea
+              value={extra.cancellation_policy}
+              onChange={(e) => updateExtra("cancellation_policy", e.target.value)}
+              className="h-20 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
+              placeholder="Ex: Cancelamento sem custo ate 24h antes do passeio."
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Roteiro</Label>
@@ -572,5 +609,11 @@ function extraToPayload(extra: ProductExtraForm): Record<string, unknown> {
     not_included: linesToArray(extra.not_included),
     itinerary: textToItinerary(extra.itinerary),
     important_info: extra.important_info.trim(),
+    cancellation_policy: extra.cancellation_policy.trim(),
+    guide_languages: linesToArray(extra.guide_languages),
+    gallery: linesToArray(extra.gallery),
+    capacity: extra.capacity.trim(),
+    bedrooms: extra.bedrooms.trim(),
+    bathrooms: extra.bathrooms.trim(),
   };
 }

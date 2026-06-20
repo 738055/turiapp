@@ -94,10 +94,10 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
       card_type: "card-price-highlight",
     },
     sections: [
-      hero("Experiencias locais sem improviso", "Transfers, ingressos e passeios com atendimento humano, horarios claros e suporte do inicio ao fim.", "Ver experiencias", "/busca?modulo=receptivo", "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1600&q=80", "marketplace", [
+      hero("Conheca as Cataratas com quem e de Foz", "Passeios, ingressos e transfers organizados por uma equipe local. Reserva online, confirmacao imediata e atendimento de quem conhece a regiao.", "Buscar experiencias", "/busca?modulo=receptivo", "/storefront/receptivo/hero-cataratas.jpg", "marketplace", [
         { value: "24h", label: "suporte ao viajante" },
         { value: "4.9", label: "avaliacao media" },
-        { value: "100%", label: "roteiros editaveis" },
+        { value: "10x", label: "pagamento facilitado" },
       ]),
       searchBar("Busque por passeio, ingresso ou transfer"),
       productGrid("Mais vendidos", "Produtos com detalhes de duracao, roteiro, inclusos e politica de cancelamento.", "receptivo", "marketplace"),
@@ -324,7 +324,7 @@ function productDefaults(module: StoreTemplateProductDefaults["module"], type: s
   return {
     module,
     type,
-    title: isHospedagem ? "Suite vista jardim" : isEmissivo ? "Pacote completo para Gramado" : "Cataratas com transfer",
+      title: isHospedagem ? "Suite vista jardim" : isEmissivo ? "Pacote completo para Gramado" : "Cataratas com transfer",
     description: isHospedagem
       ? "Acomodacao confortavel com cafe da manha, boa localizacao e atendimento proximo."
       : isEmissivo
@@ -351,6 +351,22 @@ function productDefaults(module: StoreTemplateProductDefaults["module"], type: s
             { title: "Roteiro principal", description: "Execucao do passeio ou pacote conforme descricao comercial." },
           ],
       important_info: "Personalize estas informacoes no cadastro do produto para refletir sua operacao real.",
+      cancellation_policy: isHospedagem
+        ? "Cancelamento gratuito ate 7 dias antes da data de chegada."
+        : "Cancelamento gratis conforme a politica do operador. Edite esta regra no cadastro do produto.",
+      guide_languages: isHospedagem ? [] : ["Portugues", "Espanhol"],
+      gallery: isHospedagem
+        ? [
+            "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+          ]
+        : [
+            "/storefront/receptivo/hero-cataratas.jpg",
+            "https://images.unsplash.com/photo-1580934908361-967195033215?auto=format&fit=crop&w=1200&q=80",
+          ],
+      capacity: isHospedagem ? "2 pessoas" : undefined,
+      bedrooms: isHospedagem ? "1 quarto" : undefined,
+      bathrooms: isHospedagem ? "1 banheiro" : undefined,
     },
   };
 }

@@ -1,26 +1,43 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { createServiceClient } from "@/lib/supabase/server";
-import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
-import { formatCurrency } from "@/lib/utils";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Bath,
+  BedDouble,
+  Calendar,
+  Check,
+  Clock,
+  Image as ImageIcon,
+  Languages,
+  Map,
+  MapPin,
+  ShieldCheck,
+  Star,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
+import {
+  lowestRate,
+  productCategoryLabel,
+  productExtra,
+  productImages,
+  rateSuffix,
+  type PublicProduct,
+} from "@/lib/storefront-design";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Product, ProductRate, Theme } from "@/types";
-import { Check, Clock, Info, MapPin, X } from "lucide-react";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
-}
-
-interface ProductExtraData {
-  duration?: string;
-  location?: string;
-  highlights?: string[];
-  included?: string[];
-  not_included?: string[];
-  itinerary?: { title?: string; description?: string }[];
-  important_info?: string;
 }
 
 export async function generateMetadata({ params }: ProductPageProps) {
@@ -65,13 +82,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!product) notFound();
 
-  // Approved reviews for this product (read via service_role; pending/rejected
-  // and token_hash never leave the server).
+  const p = product as unknown as PublicProduct;
+  const t = theme as unknown as Theme | null;
+  const extra = productExtra(p);
+  const images = productImages(p);
+  const category = productCategoryLabel(p);
+  const rate = lowestRate(p);
+  const primaryColor = t?.primary_color ?? "#0ea5e9";
+  const secondaryColor = t?.secondary_color ?? "#111827";
+
   const { data: reviews } = await createServiceClient()
     .from("reviews")
     .select("id, customer_name, rating, body, submitted_at")
     .eq("tenant_id", tenantId ?? "")
-    .eq("product_id", (product as { id: string }).id)
+    .eq("product_id", p.id)
     .eq("status", "approved")
     .not("submitted_at", "is", null)
     .order("submitted_at", { ascending: false })
@@ -80,216 +104,287 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const approvedReviews = reviews ?? [];
   const avgRating =
     approvedReviews.length > 0
-      ? approvedReviews.reduce((s, r) => s + (r.rating ?? 0), 0) / approvedReviews.length
+      ? approvedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / approvedReviews.length
       : 0;
 
-  const p = product as unknown as Product & { rates: ProductRate[] };
-  const t = theme as unknown as Theme | null;
-  const extra = (p.extra_data ?? {}) as ProductExtraData;
-  const highlights = stringArray(extra.highlights);
-  const included = stringArray(extra.included);
-  const notIncluded = stringArray(extra.not_included);
-  const itinerary = Array.isArray(extra.itinerary) ? extra.itinerary.filter((item) => item.title || item.description) : [];
-  const lowestRate = p.rates?.reduce(
-    (min, r) => (r.price < min.price ? r : min),
-    p.rates[0]
-  );
-
   return (
-    <main className="max-w-5xl mx-auto px-4 py-10">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* Images */}
-        <div>
-          {p.images?.[0] ? (
-            <div className="relative aspect-[4/3] rounded-[var(--radius,0.5rem)] overflow-hidden">
-              <Image
-                src={p.images[0]}
-                alt={p.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          ) : (
-            <div className="aspect-[4/3] rounded-[var(--radius,0.5rem)] bg-gray-100 flex items-center justify-center text-6xl">
-              🏖️
-            </div>
-          )}
-          {p.images?.length > 1 && (
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {p.images.slice(1, 5).map((img, i) => (
-                <div key={i} className="relative aspect-square rounded overflow-hidden">
-                  <Image src={img} alt="" fill className="object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="space-y-5">
-          <div>
-            <p className="text-sm capitalize text-gray-400 mb-1">{p.type?.replace("-", " ")}</p>
-            <h1 className="text-3xl font-bold">{p.title}</h1>
-            {approvedReviews.length > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <span key={n} className={Math.round(avgRating) >= n ? "text-yellow-400" : "text-gray-200"}>★</span>
-                  ))}
-                </div>
-                <span className="text-sm text-gray-500">
-                  {avgRating.toFixed(1)} · {approvedReviews.length} {approvedReviews.length === 1 ? "avaliação" : "avaliações"}
-                </span>
-              </div>
-            )}
-            {lowestRate && (
-              <p className="text-2xl font-bold mt-3" style={{ color: t?.primary_color ?? "#0ea5e9" }}>
-                A partir de {formatCurrency(lowestRate.price, lowestRate.currency)}
-                <span className="text-sm font-normal text-gray-400 ml-1">
-                  /{lowestRate.rate_type === "per_night" ? "noite" :
-                    lowestRate.rate_type === "per_person" ? "pessoa" : "reserva"}
-                </span>
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
-              {extra.duration && <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4 text-gray-400" /> {extra.duration}</span>}
-              {extra.location && <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-gray-400" /> {extra.location}</span>}
-            </div>
-            {!!highlights.length && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {highlights.map((item) => (
-                  <span key={item} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                    <Check className="h-3.5 w-3.5" style={{ color: t?.primary_color ?? "#0ea5e9" }} /> {item}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {p.description && (
-            <div>
-              <h2 className="font-semibold mb-2">Sobre</h2>
-              <p className="text-gray-600 leading-relaxed whitespace-pre-line">{p.description}</p>
-            </div>
-          )}
-
-          {(included.length > 0 || notIncluded.length > 0) && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {included.length > 0 && (
-                <InfoList title="Inclui" items={included} icon="check" />
-              )}
-              {notIncluded.length > 0 && (
-                <InfoList title="Nao inclui" items={notIncluded} icon="x" />
-              )}
-            </div>
-          )}
-
-          {itinerary.length > 0 && (
-            <div>
-              <h2 className="font-semibold mb-3">Roteiro</h2>
-              <div className="space-y-3">
-                {itinerary.map((item, index) => (
-                  <div key={`${item.title}-${index}`} className="rounded-[var(--radius,0.5rem)] border border-gray-100 bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Etapa {index + 1}</p>
-                    {item.title && <p className="mt-1 font-semibold text-gray-900">{item.title}</p>}
-                    {item.description && <p className="mt-1 text-sm leading-relaxed text-gray-600">{item.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {extra.important_info && (
-            <div className="rounded-[var(--radius,0.5rem)] border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900">
-              <p className="mb-1 flex items-center gap-1.5 font-semibold"><Info className="h-4 w-4" /> Informacoes importantes</p>
-              <p className="whitespace-pre-line leading-relaxed">{extra.important_info}</p>
-            </div>
-          )}
-
-          {/* Rates table */}
-          {p.rates?.length > 0 && p.sale_mode === "booking" && (
-            <div>
-              <h2 className="font-semibold mb-2">Tarifas disponíveis</h2>
-              <div className="space-y-2">
-                {p.rates.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between rounded-[var(--radius,0.5rem)] border p-3">
-                    <div>
-                      <p className="font-medium text-sm">{r.name}</p>
-                      {r.season_name && (
-                        <p className="text-xs text-gray-400">{r.season_name}</p>
-                      )}
-                      {r.valid_from && r.valid_to && (
-                        <p className="text-xs text-gray-400">
-                          {new Date(r.valid_from).toLocaleDateString("pt-BR")} –{" "}
-                          {new Date(r.valid_to).toLocaleDateString("pt-BR")}
-                        </p>
-                      )}
-                    </div>
-                    <p className="font-bold" style={{ color: t?.primary_color ?? "#0ea5e9" }}>
-                      {formatCurrency(r.price, r.currency)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* CTA */}
-          <BookingWidget
-            product={p}
-            theme={t}
-            tenantId={tenantId ?? ""}
-          />
-
-          <LeadCaptureForm
-            tenantId={tenantId ?? ""}
-            productId={p.id}
-            primaryColor={t?.primary_color ?? "#0ea5e9"}
-          />
+    <main className="bg-gray-50 text-gray-900">
+      <div className="border-b border-gray-100 bg-white py-4 text-sm text-gray-500">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="hover:text-[var(--color-primary)]">Inicio</Link>
+          <ArrowRight className="h-3 w-3" />
+          <span>{category}</span>
+          <ArrowRight className="h-3 w-3" />
+          <span className="max-w-[220px] truncate font-medium text-gray-800 md:max-w-none">{p.title}</span>
         </div>
       </div>
 
-      {approvedReviews.length > 0 && (
-        <section className="mt-12 border-t pt-10">
-          <h2 className="text-2xl font-bold mb-6">Avaliações de quem já viveu essa experiência</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {approvedReviews.map((r) => (
-              <div key={r.id} className="rounded-[var(--radius,0.5rem)] border border-gray-100 bg-white p-5">
-                <div className="flex gap-0.5 mb-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <span key={n} className={(r.rating ?? 0) >= n ? "text-yellow-400" : "text-gray-200"}>★</span>
-                  ))}
-                </div>
-                {r.body && <p className="text-gray-600 text-sm leading-relaxed mb-3 whitespace-pre-line">&ldquo;{r.body}&rdquo;</p>}
-                <p className="text-sm font-semibold text-gray-800">{r.customer_name}</p>
-              </div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <header className="mb-7">
+          <div className="mb-3 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 rounded bg-[var(--color-primary)]/10 px-2 py-1 text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
+              {category}
+            </span>
+            {extra.highlights.slice(0, 2).map((item) => (
+              <span key={item} className="inline-flex items-center gap-1 rounded bg-white px-2 py-1 text-xs font-bold uppercase tracking-wider text-gray-500">
+                <Check className="h-3 w-3" /> {item}
+              </span>
             ))}
           </div>
-        </section>
-      )}
+          <h1 className="max-w-4xl text-3xl font-extrabold leading-tight text-gray-950 md:text-5xl">{p.title}</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+            {extra.location && <MetaPill icon={MapPin} label={extra.location} />}
+            {extra.duration && <MetaPill icon={Clock} label={extra.duration} />}
+            {extra.guideLanguages.length > 0 && <MetaPill icon={Languages} label={extra.guideLanguages.join(", ")} />}
+            {approvedReviews.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 font-medium text-gray-700 shadow-sm">
+                <Star className="h-4 w-4 fill-[var(--color-accent)] text-[var(--color-accent)]" />
+                {avgRating.toFixed(1)} de {approvedReviews.length} avaliacoes
+              </span>
+            )}
+          </div>
+        </header>
+
+        <ProductGallery images={images} title={p.title} />
+
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="space-y-8">
+            <InfoPanel title="Informacao geral" icon={Map}>
+              <p className="whitespace-pre-line text-base leading-relaxed text-gray-600">
+                {p.description || "Produto cadastrado pelo tenant. Use o painel para completar a descricao comercial."}
+              </p>
+            </InfoPanel>
+
+            <ProductSpecs product={p} extra={extra} />
+
+            {(extra.included.length > 0 || extra.notIncluded.length > 0) && (
+              <InfoPanel title="O que inclui / nao inclui" icon={Check} muted>
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                  {extra.included.length > 0 && <InfoList items={extra.included} icon={Check} color="text-emerald-600" />}
+                  {extra.notIncluded.length > 0 && <InfoList items={extra.notIncluded} icon={X} color="text-red-400" />}
+                </div>
+              </InfoPanel>
+            )}
+
+            {extra.importantInfo && (
+              <InfoPanel title="Antes de participar" icon={AlertCircle}>
+                <div className="rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 p-4 text-sm leading-relaxed text-gray-700">
+                  {extra.importantInfo}
+                </div>
+              </InfoPanel>
+            )}
+
+            {extra.cancellationPolicy && (
+              <InfoPanel title="Politica de cancelamento" icon={ShieldCheck}>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">{extra.cancellationPolicy}</p>
+              </InfoPanel>
+            )}
+
+            {extra.itinerary.length > 0 && (
+              <InfoPanel title="Roteiro" icon={Calendar}>
+                <div className="relative ml-3 space-y-8 border-l-2 border-[var(--color-primary)]/20 pb-2">
+                  {extra.itinerary.map((item, index) => (
+                    <div key={`${item.title}-${index}`} className="relative ml-8">
+                      <span className="absolute -left-[43px] top-0 rounded-full border-4 border-[var(--color-primary)]/20 bg-white p-2 text-[var(--color-primary)] shadow-sm">
+                        <Map className="h-4 w-4" />
+                      </span>
+                      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        {item.time && <span className="w-fit rounded bg-[var(--color-secondary)] px-2 py-1 text-xs font-bold text-white">{item.time}</span>}
+                        <h3 className="text-lg font-bold text-gray-800">{item.title || `Etapa ${index + 1}`}</h3>
+                      </div>
+                      {item.description && <p className="text-sm leading-relaxed text-gray-600">{item.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </InfoPanel>
+            )}
+
+            {approvedReviews.length > 0 && <ReviewsSection reviews={approvedReviews} avgRating={avgRating} />}
+          </div>
+
+          <aside>
+            <div className="sticky top-24 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
+              <div className="p-5 text-white" style={{ backgroundColor: secondaryColor }}>
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest opacity-80">A partir de</p>
+                {rate ? (
+                  <>
+                    <p className="text-3xl font-bold">{formatCurrency(rate.price, rate.currency)}</p>
+                    <p className="mt-1 text-sm text-white/70">{rateSuffix(rate) || "/ reserva"} em ate 10x sem juros</p>
+                  </>
+                ) : (
+                  <p className="text-2xl font-bold">Consultar tarifa</p>
+                )}
+              </div>
+              <div className="space-y-5 p-6">
+                {(p.rates?.length ?? 0) > 0 && <RateList rates={p.rates ?? []} primaryColor={primaryColor} />}
+                <BookingWidget product={p as Product & { rates?: ProductRate[] }} theme={t} tenantId={tenantId ?? ""} embedded />
+                <LeadCaptureForm tenantId={tenantId ?? ""} productId={p.id} primaryColor={primaryColor} />
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </main>
   );
 }
 
-function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+function ProductGallery({ images, title }: { images: string[]; title: string }) {
+  const slots = [0, 1, 2, 3, 4].map((index) => images[index] ?? images[0]);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-[320px] grid-cols-1 gap-2 bg-white md:h-[450px] md:grid-cols-4">
+        <ImageTile src={slots[0]} alt={title} className="md:col-span-2" priority />
+        <div className="hidden h-full flex-col gap-2 md:flex">
+          <ImageTile src={slots[1]} alt={`${title} foto 2`} />
+          <ImageTile src={slots[2]} alt={`${title} foto 3`} />
+        </div>
+        <div className="relative hidden h-full flex-col gap-2 md:flex">
+          <ImageTile src={slots[3]} alt={`${title} foto 4`} />
+          <ImageTile src={slots[4]} alt={`${title} foto 5`} />
+          <span className="absolute bottom-4 right-4 flex items-center gap-2 rounded-xl bg-white/95 px-4 py-2 text-sm font-bold text-gray-900 shadow-lg">
+            <ImageIcon className="h-4 w-4" /> {images.length} fotos
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function InfoList({ title, items, icon }: { title: string; items: string[]; icon: "check" | "x" }) {
-  const Icon = icon === "check" ? Check : X;
-  const color = icon === "check" ? "text-green-600" : "text-gray-400";
+function ImageTile({ src, alt, className = "", priority = false }: { src: string; alt: string; className?: string; priority?: boolean }) {
   return (
-    <div className="rounded-[var(--radius,0.5rem)] border border-gray-100 bg-white p-4">
-      <h2 className="mb-3 font-semibold">{title}</h2>
-      <ul className="space-y-2">
-        {items.map((item) => (
-          <li key={item} className="flex gap-2 text-sm text-gray-600">
-            <Icon className={`mt-0.5 h-4 w-4 flex-shrink-0 ${color}`} />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
+    <div className={`relative h-full min-h-0 overflow-hidden bg-gray-100 ${className}`}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-cover transition-transform duration-500 hover:scale-[1.03]"
+      />
     </div>
+  );
+}
+
+function ProductSpecs({ product, extra }: { product: PublicProduct; extra: ReturnType<typeof productExtra> }) {
+  const specs =
+    product.module === "hospedagem"
+      ? [
+          extra.capacity ? { icon: Users, label: extra.capacity, title: "Capacidade" } : null,
+          extra.bedrooms ? { icon: BedDouble, label: extra.bedrooms, title: "Quartos" } : null,
+          extra.bathrooms ? { icon: Bath, label: extra.bathrooms, title: "Banheiros" } : null,
+        ]
+      : [
+          extra.duration ? { icon: Clock, label: extra.duration, title: "Duracao" } : null,
+          extra.location ? { icon: MapPin, label: extra.location, title: "Destino" } : null,
+          extra.guideLanguages.length ? { icon: Languages, label: extra.guideLanguages.join(", "), title: "Idiomas" } : null,
+        ];
+  const visible = specs.filter(Boolean) as { icon: LucideIcon; label: string; title: string }[];
+  if (!visible.length) return null;
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {visible.map(({ icon: Icon, label, title }) => (
+        <div key={title} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <Icon className="mb-4 h-5 w-5 text-[var(--color-primary)]" />
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-400">{title}</p>
+          <p className="mt-1 font-semibold text-gray-900">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function InfoPanel({
+  title,
+  icon: Icon,
+  children,
+  muted = false,
+}: {
+  title: string;
+  icon: LucideIcon;
+  children: ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <section className={`overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${muted ? "bg-gray-50/50" : ""}`}>
+      <div className="border-b border-gray-100 p-6">
+        <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+          <Icon className="h-6 w-6 text-[var(--color-primary)]" /> {title}
+        </h2>
+      </div>
+      <div className="p-6">{children}</div>
+    </section>
+  );
+}
+
+function InfoList({ items, icon: Icon, color }: { items: string[]; icon: LucideIcon; color: string }) {
+  return (
+    <ul className="space-y-3">
+      {items.map((item) => (
+        <li key={item} className="flex items-start gap-3 text-sm font-medium text-gray-700">
+          <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${color}`} strokeWidth={3} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RateList({ rates, primaryColor }: { rates: ProductRate[]; primaryColor: string }) {
+  return (
+    <div className="space-y-2">
+      {rates.slice(0, 4).map((rate) => (
+        <div key={rate.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+          <div>
+            <p className="text-sm font-bold text-gray-800">{rate.name}</p>
+            <p className="text-xs text-gray-400">
+              {rate.season_name || "Tarifa disponivel"}
+              {rate.valid_from && rate.valid_to ? `, ${formatDate(rate.valid_from)} ate ${formatDate(rate.valid_to)}` : ""}
+            </p>
+          </div>
+          <p className="font-bold" style={{ color: primaryColor }}>{formatCurrency(rate.price, rate.currency)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsSection({ reviews, avgRating }: { reviews: { id: string; customer_name: string; rating: number | null; body: string | null }[]; avgRating: number }) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900">Avaliacoes de quem ja viveu essa experiencia</h2>
+      <div className="mb-6 flex items-center gap-2">
+        <span className="rounded bg-[var(--color-secondary)] px-2 py-1 text-sm font-bold text-white">{avgRating.toFixed(1)}</span>
+        <StarRow rating={avgRating} />
+      </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        {reviews.map((review) => (
+          <article key={review.id} className="rounded-xl border border-gray-100 p-5">
+            <StarRow rating={review.rating ?? 0} />
+            {review.body && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-600">&ldquo;{review.body}&rdquo;</p>}
+            <p className="mt-4 text-sm font-bold text-gray-800">{review.customer_name}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((item) => (
+        <Star key={item} className={`h-4 w-4 ${rating >= item ? "fill-[var(--color-accent)] text-[var(--color-accent)]" : "text-gray-200"}`} />
+      ))}
+    </div>
+  );
+}
+
+function MetaPill({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 font-medium text-gray-700 shadow-sm">
+      <Icon className="h-4 w-4 text-[var(--color-primary)]" /> {label}
+    </span>
   );
 }

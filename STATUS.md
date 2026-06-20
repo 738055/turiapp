@@ -24,6 +24,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Gating de planos:** limites de plano (`booking_engine`/`custom_domain`/`pixel_integrations`) agora **realmente aplicados** no backend + UI de upsell — antes só contagem de produtos/usuários era enforçada (furo de monetização fechado)
 - **Revisão geral + correções:** 2 bugs de constraint corrigidos (`ssl_status` e `subscription_status` — ambos travariam produção); fluxo de domínio próprio aprimorado (A+CNAME sempre, 3 estados, DNS persistido)
 - **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve apenas a raiz `/` para a rota interna `/storefront` e mantém `/busca`, `/produto/...` etc no roteamento público normal; painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
+- **Storefront por modelos reais:** cards, busca e pagina de produto agora reutilizam os estilos dos projetos em `references/projetos-base/` (marketplace/receptivo e editorial/hospedagem), com galeria, inclusos, nao-inclusos, roteiro, politica, tarifas e placeholders visuais profissionais alimentados pelo CRUD do tenant
 
 ---
 
@@ -98,6 +99,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 
 ### Busca e filtros no site público (Etapa 22)
 - Página `/busca` (form GET, **URL compartilhável**): busca textual em título/descrição (com sanitização anti-injeção no `.or()` do PostgREST e curinga `*` correto), filtros por módulo, preço máximo e nº de pessoas (sobre as tarifas), ordenação (relevância/menor preço/recentes)
+- Resultados da busca usam `StorefrontProductCard`, o mesmo card dos modelos prontos: layout horizontal estilo marketplace para receptivo/emissivo e editorial para hospedagem, sem bloco cinza quando o tenant ainda nao cadastrou foto
 - Seção `SearchBar` do builder já apontava para `/busca?q=` — agora conectada a uma página real
 
 ### Cobrança avançada da plataforma (Etapa 29)
@@ -186,7 +188,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Hospedagem** (pousada, hotel, airbnb), **Receptivo** (experiência, ingresso, transporte), **Emissivo** (pacote, cruzeiro)
 - Tarifário por produto: `per_person`, `per_night`, `fixed` com sazonalidade e períodos
 - Upload de até 8 imagens por produto com galeria (Supabase Storage)
-- `products.extra_data` alimenta layouts profissionais com duração/local, destaques, inclui, não inclui, roteiro e informações importantes; o CRUD de produtos expõe esses campos sem migration nova
+- `products.extra_data` alimenta layouts profissionais com duracao/local, destaques, inclui, nao inclui, roteiro, informacoes importantes, politica de cancelamento, idiomas do guia, galeria adicional e dados de hospedagem (capacidade/quartos/banheiros); o CRUD de produtos expoe esses campos sem migration nova
 - SEO por produto (title, description, OG)
 - Limite de produtos por plano (Básico: 20 / Pro: 100 / Premium: ilimitado)
 - **Gating de features por plano** (`lib/plans/limits.ts`): `booking_engine` (Básico = só WhatsApp, bloqueia modo "reserva" e conectar pagamento), `custom_domain` (bloqueia domínio próprio) e `pixel_integrations` (bloqueia pixels/analytics, incluindo `head_scripts`) **aplicados no backend** (products/save, payments/connect, domain/add, integrations/save); trial (sem plano) = acesso liberado; produto já em modo reserva mantém após downgrade (só novas ativações são barradas). Antes só `max_products`/`max_team_members` eram enforçados (furo de monetização fechado)

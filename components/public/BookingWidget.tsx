@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ interface BookingWidgetProps {
   product: Product & { rates?: ProductRate[] };
   theme: Theme | null;
   tenantId: string;
+  embedded?: boolean;
 }
 
 interface BookingForm {
@@ -24,7 +25,7 @@ interface BookingForm {
   phone: string;
 }
 
-export function BookingWidget({ product, theme, tenantId }: BookingWidgetProps) {
+export function BookingWidget({ product, theme, tenantId, embedded = false }: BookingWidgetProps) {
   const primaryColor = theme?.primary_color ?? "#0ea5e9";
 
   if (product.sale_mode === "whatsapp") {
@@ -47,17 +48,19 @@ export function BookingWidget({ product, theme, tenantId }: BookingWidgetProps) 
     );
   }
 
-  return <BookingForm product={product} primaryColor={primaryColor} tenantId={tenantId} />;
+  return <BookingForm product={product} primaryColor={primaryColor} tenantId={tenantId} embedded={embedded} />;
 }
 
 function BookingForm({
   product,
   primaryColor,
   tenantId,
+  embedded,
 }: {
   product: Product & { rates?: ProductRate[] };
   primaryColor: string;
   tenantId: string;
+  embedded: boolean;
 }) {
   const [step, setStep] = useState<"dates" | "contact" | "confirm" | "done">("dates");
   const [isPending, startTransition] = useTransition();
@@ -154,11 +157,13 @@ function BookingForm({
     });
   }
 
-  if (step === "done" && bookingId) {
-    // Redirect to checkout page for payment
-    if (typeof window !== "undefined") {
+  useEffect(() => {
+    if (step === "done" && bookingId) {
       window.location.href = `/checkout/${bookingId}`;
     }
+  }, [bookingId, step]);
+
+  if (step === "done" && bookingId) {
     return (
       <div className="rounded-xl border p-6 text-center">
         <p className="text-sm text-gray-500">Redirecionando para o pagamento...</p>
@@ -167,7 +172,7 @@ function BookingForm({
   }
 
   return (
-    <div className="rounded-xl border p-5 space-y-4">
+    <div className={embedded ? "space-y-4" : "rounded-xl border p-5 space-y-4"}>
       <h3 className="font-semibold">Fazer reserva</h3>
 
       {/* Rate selector */}
