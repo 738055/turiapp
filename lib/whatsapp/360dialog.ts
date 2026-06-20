@@ -121,6 +121,44 @@ export async function listWhatsAppTemplates(apiKey: string): Promise<WhatsAppRem
   return [];
 }
 
+/** Envia midia por LINK publico; a Meta busca a URL.
+ *  Só permitido dentro da janela de 24h (mensagem de sessão). */
+export type WhatsAppMediaType = "image" | "document" | "audio" | "video";
+
+export async function sendWhatsAppMedia(opts: {
+  apiKey: string; to: string; type: WhatsAppMediaType; link: string; caption?: string; filename?: string;
+}): Promise<SendTemplateResult> {
+  const media: Record<string, unknown> = { link: opts.link };
+  if (opts.caption && opts.type !== "audio") media.caption = opts.caption;
+  if (opts.type === "document" && opts.filename) media.filename = opts.filename;
+  const body = await request<{ messages?: { id: string }[] }>("/messages", opts.apiKey, {
+    method: "POST",
+    body: JSON.stringify({ to: opts.to, type: opts.type, [opts.type]: media }),
+  });
+  return { messageId: body.messages?.[0]?.id };
+}
+
+/** Baixa os bytes de uma mídia recebida. Tenta o fluxo Cloud (GET /{id} → url →
+ *  download) e o on-premise (GET /v1/media/{id} → binário). Retorna null se não
+ *  conseguir — o chat degrada para "[imagem]" sem quebrar. */
+export async function downloadWhatsAppMedia(apiKey: string, mediaId: string): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  try {
+    const meta = await fetch(`${API_BASE}/${mediaId}`, { headers: { "D360-API-KEY": apiKey }, signal: AbortSignal.timeout(8000) });
+    if (meta.ok) {
+      const j = (await meta.json()) as { url?: string; mime_type?: string };
+      if (j.url) {
+        const bin = await fetch(j.url, { headers: { "D360-API-KEY": apiKey }, signal: AbortSignal.timeout(10000) });
+        if (bin.ok) return { bytes: await bin.arrayBuffer(), contentType: j.mime_type ?? bin.headers.get("content-type") ?? "application/octet-stream" };
+      }
+    }
+  } catch { /* tenta o próximo */ }
+  try {
+    const bin = await fetch(`${API_BASE}/v1/media/${mediaId}`, { headers: { "D360-API-KEY": apiKey }, signal: AbortSignal.timeout(10000) });
+    if (bin.ok) return { bytes: await bin.arrayBuffer(), contentType: bin.headers.get("content-type") ?? "application/octet-stream" };
+  } catch { /* desiste */ }
+  return null;
+}
+
 export async function validateWhatsAppCredentials(apiKey: string): Promise<boolean> {
   try {
     await request("/v1/configs/webhook", apiKey);

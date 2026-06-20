@@ -3,9 +3,33 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const BUCKET = "media";
+
+const DOCUMENT_TYPES = new Set([
+  "application/pdf",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+function maxBytesFor(type: string): number | null {
+  if (IMAGE_TYPES.has(type)) return 5 * 1024 * 1024;
+  if (type.startsWith("audio/")) return 16 * 1024 * 1024;
+  if (type.startsWith("video/")) return 16 * 1024 * 1024;
+  if (DOCUMENT_TYPES.has(type)) return 25 * 1024 * 1024;
+  return null;
+}
+
+function extensionFor(file: File): string {
+  const nameExt = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10) : undefined;
+  const mimeExt = file.type.split("/")[1]?.split(";")[0]?.replace("jpeg", "jpg").replace(/[^a-z0-9]/g, "").slice(0, 10);
+  return nameExt || mimeExt || "bin";
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -20,11 +44,12 @@ export async function POST(req: NextRequest) {
   if (!file || !tenantId) {
     return NextResponse.json({ error: "Arquivo e tenant_id são obrigatórios." }, { status: 400 });
   }
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "Tipo de arquivo não permitido. Use JPEG, PNG ou WebP." }, { status: 400 });
+  const maxBytes = maxBytesFor(file.type);
+  if (!maxBytes) {
+    return NextResponse.json({ error: "Tipo de arquivo nao permitido." }, { status: 400 });
   }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Arquivo muito grande. Máximo 5 MB." }, { status: 400 });
+  if (file.size > maxBytes) {
+    return NextResponse.json({ error: `Arquivo muito grande. Maximo ${Math.floor(maxBytes / 1024 / 1024)} MB.` }, { status: 400 });
   }
 
   const service = createServiceClient();
@@ -38,7 +63,7 @@ export async function POST(req: NextRequest) {
     .single();
   if (!membership) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
 
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+  const ext = extensionFor(file);
   const filename = `${tenantId}/${folder}/${crypto.randomUUID()}.${ext}`;
   const bytes = await file.arrayBuffer();
 

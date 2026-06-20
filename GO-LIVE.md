@@ -31,10 +31,11 @@ Tempo estimado: **2–4 horas** (a maior parte é esperar verificação de DNS/e
    - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` ⚠️ secreta
 3. **SQL Editor** → rode, **em ordem**, todos os arquivos de `db/migrations/`:
-   `001` → `002` → ... → `022`. (Pode colar um de cada vez.)
+   `001` → `002` → ... → `026`. (Pode colar um de cada vez.)
 4. Rode também `db/policies/rls.sql`.
-5. **Storage** → "New bucket" → nome **`media`** → marque **Public**. (O bucket
-   `private_docs` já é criado pela migration 012.)
+5. **Storage** → "New bucket" → nome **`media`** → marque **Public**. Ele é usado
+   por imagens de produto e anexos do chat WhatsApp. (O bucket `private_docs` já
+   é criado pela migration 012.)
 6. Confirme no SQL Editor que o schema privado de auditoria existe:
    `select * from audit.sensitive_data_changes limit 1;` (deve responder vazio, não erro).
 
@@ -120,6 +121,7 @@ Marque cada item:
 [ ] 2. Criar conta em app.turiapp.com.br → completar onboarding (wizard 6 passos)
 [ ] 3. Loja no ar em slug.turiapp.com.br
 [ ] 4. Criar um produto modo WhatsApp → no site, botão abre o WhatsApp com a info ✅
+[ ] 4b. Em /conversas, responder dentro da janela de 24h com texto + imagem/audio/documento e confirmar renderização na bolha
 [ ] 5. (Plano Pro/trial) Conectar Stripe ou Mercado Pago em Pagamentos
 [ ] 6. Criar produto modo Reserva → fazer uma reserva de teste → pagar (sandbox) → receber voucher por e-mail
 [ ] 7. Receber o e-mail de "nova reserva" como dono da loja

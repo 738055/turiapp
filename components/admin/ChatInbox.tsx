@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { MessageCircle, Send, User, Phone, Clock, ExternalLink, Loader2, Check, CheckCheck, X, Tag, UserPlus, StickyNote, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, User, Phone, Clock, ExternalLink, Loader2, Check, CheckCheck, X, Tag, UserPlus, StickyNote, AlertCircle, Paperclip, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,7 +11,8 @@ interface Conversation {
   contact_name: string | null; status: string; tags: string[]; assigned_to: string | null;
   last_message_at: string | null; last_message_preview: string | null; last_inbound_at: string | null; unread_count: number;
 }
-interface Message { id: string; direction: "inbound" | "outbound"; type: string; body: string | null; status: string | null; created_at: string; }
+interface Message { id: string; direction: "inbound" | "outbound"; type: string; body: string | null; media_url: string | null; status: string | null; created_at: string; }
+type ChatMediaType = "image" | "document" | "audio" | "video";
 interface Booking { id: string; status: string; total_price: number; currency: string; created_at: string; productTitle: string; }
 interface Note { id: string; body: string; author: string; created_at: string; }
 interface TemplateDef { key: string; label: string; paramKeys: string[]; }
@@ -33,6 +34,44 @@ function timeAgo(iso: string | null): string {
 }
 const STATUS_LABEL: Record<string, string> = { pending: "Pendente", confirmed: "Confirmada", cancelled: "Cancelada", refunded: "Reembolsada", completed: "Concluída" };
 type Filter = "all" | "open" | "closed" | "mine";
+
+const ATTACHMENT_ACCEPT = [
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "audio/aac", "audio/amr", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/opus", "audio/webm",
+  "video/mp4", "video/3gpp", "video/webm",
+  "application/pdf", "text/plain",
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+].join(",");
+
+function mediaTypeFromFile(file: File): ChatMediaType {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("audio/")) return "audio";
+  if (file.type.startsWith("video/")) return "video";
+  return "document";
+}
+
+function MediaBubble({ message }: { message: Message }) {
+  if (!message.media_url) return null;
+  if (message.type === "image" || message.type === "sticker") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <a href={message.media_url} target="_blank" rel="noopener noreferrer"><img src={message.media_url} alt={message.body ?? "imagem"} className="mb-1 max-h-60 rounded-lg object-contain" /></a>
+    );
+  }
+  if (message.type === "video") {
+    return <video src={message.media_url} controls className="mb-1 max-h-60 max-w-full rounded-lg" />;
+  }
+  if (message.type === "audio") {
+    return <audio src={message.media_url} controls className="mb-1 w-64 max-w-full" />;
+  }
+  return (
+    <a href={message.media_url} target="_blank" rel="noopener noreferrer" className="mb-1 flex items-center gap-1 underline">
+      <FileText className="h-3.5 w-3.5" /> Abrir arquivo
+    </a>
+  );
+}
 
 function MsgStatus({ status }: { status: string | null }) {
   if (status === "failed") return <AlertCircle className="h-3 w-3 text-red-200" />;
@@ -64,8 +103,41 @@ export function ChatInbox({ tenantId, currentUserId, whatsappConnected, template
   const [tagInput, setTagInput] = useState("");
   const [convertForm, setConvertForm] = useState<{ target: "customer" | "lead"; name: string; email: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function sendAttachment(file: File) {
+    if (!activeId) return;
+    setError(null);
+    if (!withinWindow) {
+      setError("Midia so pode ser enviada dentro da janela de 24h. Use um modelo aprovado.");
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    setUploading(true);
+    try {
+      const mediaType = mediaTypeFromFile(file);
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("tenant_id", tenantId);
+      fd.append("folder", "whatsapp");
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await up.json().catch(() => ({}));
+      if (!up.ok || !upData.url) { setError(upData.error ?? "Erro ao enviar o arquivo."); return; }
+      const res = await fetch("/api/conversations/send", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenant_id: tenantId, conversation_id: activeId, media_url: upData.url, media_type: mediaType, filename: file.name, body: text.trim() || undefined }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(d.error ?? "Erro ao enviar o arquivo."); return; }
+      setText(""); loadThread(activeId); loadConversations();
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   const loadConversations = useCallback(async () => {
     const res = await fetch(`/api/conversations/list?tenant_id=${tenantId}`);
@@ -169,8 +241,6 @@ export function ChatInbox({ tenantId, currentUserId, whatsappConnected, template
   const visible = conversations.filter((c) =>
     filter === "all" ? true : filter === "mine" ? c.assigned_to === currentUserId : c.status === filter
   );
-  const assigneeName = (id: string | null) => teamMembers.find((m) => m.id === id)?.name ?? "—";
-
   return (
     <div className="flex h-full overflow-hidden rounded-xl border border-gray-200 bg-white">
       {/* ── Lista ── */}
@@ -230,7 +300,8 @@ export function ChatInbox({ tenantId, currentUserId, whatsappConnected, template
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.direction === "outbound" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.direction === "outbound" ? "bg-sky-500 text-white" : "bg-white text-gray-800"}`}>
-                    {m.body ?? <span className="italic opacity-70">[{m.type}]</span>}
+                    <MediaBubble message={m} />
+                    {m.body ? <span>{m.body}</span> : !m.media_url ? <span className="italic opacity-70">[{m.type}]</span> : null}
                     <span className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${m.direction === "outbound" ? "text-sky-100" : "text-gray-400"}`}>
                       {timeAgo(m.created_at)}
                       {m.direction === "outbound" && <MsgStatus status={m.status} />}
@@ -245,6 +316,10 @@ export function ChatInbox({ tenantId, currentUserId, whatsappConnected, template
               {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
               {withinWindow ? (
                 <div className="flex items-end gap-2">
+                  <input ref={fileRef} type="file" accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => { const file = e.currentTarget.files?.[0]; if (file) void sendAttachment(file); }} />
+                  <button onClick={() => fileRef.current?.click()} disabled={uploading || sending} title="Anexar midia" aria-label="Anexar midia" className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </button>
                   <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} placeholder="Escreva uma mensagem..." className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
                   <button onClick={send} disabled={sending || !text.trim()} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white disabled:opacity-50">{sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
                 </div>

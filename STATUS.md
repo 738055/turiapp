@@ -1,10 +1,10 @@
 # TuriApp — Status de Desenvolvimento
 
-> Última atualização: 2026-06-18
+> Última atualização: 2026-06-20
 > Build: ✅ Passing (`pnpm run build`) · TypeScript ✅ sem erros
 > Rotas de API: 99 · Páginas: 65
 > Testes: ✅ 72/72 passando (`pnpm test`)
-> Migrations: 25 (`db/migrations/001` a `025`) · RLS em 100% das tabelas públicas
+> Migrations: 26 (`db/migrations/001` a `026`) · RLS em 100% das tabelas públicas
 
 ---
 
@@ -16,10 +16,11 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 
 **Estado atual:** núcleo de produto **essencialmente completo e revisado**. Falta apenas o **go-live** (Etapa 15: criar contas, preencher variáveis, rodar migrations, deploy) — não há mais grande funcionalidade codificável pendente. Itens conscientemente fora de escopo (exigem fornecedor pago): Channel Manager via API e Nota Fiscal eletrônica.
 
-### 🗓️ Marcos recentes (2026-06-17 → 18)
+### 🗓️ Marcos recentes (2026-06-17 → 20)
 - **Crescimento/diferenciais:** convite de membros + RBAC (16), avaliações/UGC (23), cupons (24), busca avançada (22), **carrinho multi-produto** (21), programa de afiliados (30)
 - **Pagamentos:** PIX + parcelamento 12x + boleto (27), **cobrança da plataforma** com portal Stripe, dunning e carência (29)
 - **Plataforma:** rate limit distribuído (Upstash), circuit breaker WhatsApp, observabilidade/Sentry, cache de storefront, índices (28); **PWA instalável + Web Push** (20); **iCal export/import** com OTAs (25)
+- **Atendimento WhatsApp:** chat agora envia e renderiza mídia dentro da janela de 24h: imagem, áudio, vídeo e documentos, com `media_url` em `messages` e upload no bucket `media`
 - **Gating de planos:** limites de plano (`booking_engine`/`custom_domain`/`pixel_integrations`) agora **realmente aplicados** no backend + UI de upsell — antes só contagem de produtos/usuários era enforçada (furo de monetização fechado)
 - **Revisão geral + correções:** 2 bugs de constraint corrigidos (`ssl_status` e `subscription_status` — ambos travariam produção); fluxo de domínio próprio aprimorado (A+CNAME sempre, 3 estados, DNS persistido)
 
@@ -28,7 +29,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 ## ✅ O que está implementado e funcionando
 
 ### Infraestrutura e multi-tenancy
-- **22 migrations SQL** cobrindo toda a estrutura de dados: plataforma, builder, catálogo de turismo, pagamentos, integrações, CRM/leads/cotações, segmentação, automações, WhatsApp Business, webhooks/API pública, fidelidade, hardening, auditoria/PII, backup MFA, convite de membros, índices, avaliações/UGC, cupons, push, iCal, carrinho/orders, afiliados
+- **26 migrations SQL** cobrindo toda a estrutura de dados: plataforma, builder, catálogo de turismo, pagamentos, integrações, CRM/leads/cotações, segmentação, automações, WhatsApp Business, webhooks/API pública, fidelidade, hardening, auditoria/PII, backup MFA, convite de membros, índices, avaliações/UGC, cupons, push, iCal, carrinho/orders, afiliados, realtime e mídia em mensagens
 - **RLS (Row-Level Security)** em todas as tabelas de tenant — isolamento garantido no banco, não só no código
 - **Resolução de tenant por host** (`proxy.ts`) — subdomínio (`slug.turiapp.com.br`) e domínio customizado (`www.meusite.com.br`); o tenant é sempre resolvido por uma consulta própria ao banco a partir do header `Host`, nunca por header recebido do cliente, então não é falsificável por um header forjado
 - **Clientes Supabase**: browser, server (SSR), service-role (admin), middleware de sessão
@@ -229,9 +230,10 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 
 ### Central de Atendimento — chat WhatsApp bidirecional (CRM)
 - Migration `023_conversations.sql`: `conversations` (thread por telefone/cliente, `last_inbound_at` p/ janela 24h, `unread_count`) + `messages` (inbound/outbound, dedup por `wa_message_id`). RLS staff
-- **Webhook de entrada** `/api/webhooks/whatsapp?tenant=<slug>`: recebe mensagens do 360dialog (formato WhatsApp Cloud), cria/atualiza conversa, vincula cliente por telefone, grava mensagem (`lib/conversations/store.ts`)
-- **API**: `conversations/list`, `/messages` (marca lida + traz reservas do cliente vinculado), `/send` — **texto livre dentro da janela de 24h da Meta, template aprovado fora dela**, com circuit breaker; `sendWhatsAppText` no 360dialog
-- **UI** `/conversas` (`ChatInbox`): lista de conversas + thread estilo chat + caixa de resposta + contexto do cliente (reservas), com polling. Item "Atendimento" na sidebar. A URL do webhook é exibida na tela de WhatsApp para o tenant colar no 360dialog
+- Migration `026_message_media.sql`: adiciona `messages.media_url` para anexos enviados/recebidos (`image`, `document`, `audio`, `video`, `sticker`)
+- **Webhook de entrada** `/api/webhooks/whatsapp?tenant=<slug>`: recebe mensagens do 360dialog (formato WhatsApp Cloud), cria/atualiza conversa, vincula cliente por telefone, baixa mídia recebida e re-hospeda no bucket público `media`, grava mensagem (`lib/conversations/store.ts`)
+- **API**: `conversations/list`, `/messages` (marca lida + traz reservas do cliente vinculado), `/send` — **texto livre e mídia dentro da janela de 24h da Meta, template aprovado fora dela**, com circuit breaker; `sendWhatsAppText`, `sendWhatsAppMedia` e templates no 360dialog
+- **UI** `/conversas` (`ChatInbox`): lista de conversas + thread estilo chat + caixa de resposta com anexo + renderização de imagem/áudio/vídeo/documento na bolha + contexto do cliente (reservas), com polling/realtime. Item "Atendimento" na sidebar. A URL do webhook é exibida na tela de WhatsApp para o tenant colar no 360dialog
 - **CRM no chat** (migration `024`): atribuir conversa a um atendente da equipe, status aberta/resolvida, etiquetas (`tags`), notas internas (`conversation_notes`), e **virar cliente/criar lead** direto da conversa (`/api/conversations/update|note|convert`). Filtros (Todas/Abertas/Resolvidas/Minhas). **Card do lead no kanban tem "Abrir conversa"** (linka por `lead_id` ou telefone) e a conversa abre direto via `/conversas?c=<id>`
 
 ### WhatsApp Business API (Etapa 33)
@@ -317,7 +319,7 @@ As próximas etapas estão ordenadas por impacto real no produto. As primeiras s
 > 📘 **Runbook pronto: `GO-LIVE.md`** (passo a passo completo) + `.env.production.example`
 > (variáveis com os segredos já gerados; ignorado pelo git). Comece por ali.
 
-- [ ] Criar projeto Supabase (produção) e rodar as 22 migrations + `rls.sql`
+- [ ] Criar projeto Supabase (produção) e rodar as 26 migrations + `rls.sql`
 - [ ] Criar bucket `media` no Supabase Storage como público (`private_docs` já é criado pela migration 012)
 - [ ] Executar também `db/migrations/013_audit_trail_and_pii.sql` (schema `audit` privado + constraint de `customers.document`)
 - [ ] Executar também `db/migrations/014_mfa_backup_codes.sql` (tabela `mfa_backup_codes` para recuperação de MFA)
@@ -619,10 +621,10 @@ SENTRY_DSN=
 
 ```
 [ ] 1. Criar projeto Supabase em supabase.com
-[ ] 2. Executar, em ordem, todos os arquivos de db/migrations/001 a 022 (*.sql) — inclui 015 (membros)…021 (carrinho) e 022 (afiliados)
+[ ] 2. Executar, em ordem, todos os arquivos de db/migrations/001 a 026 (*.sql) — inclui realtime (025) e mídia no chat (026)
 [ ] 2b. (Opcional, PWA push) Gerar chaves VAPID (`npx web-push generate-vapid-keys`) e setar NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT. Ícones placeholder já em public/icons/ (`node scripts/generate-icons.mjs`) — trocar por ícones desenhados antes do lançamento
 [ ] 3. Executar: db/policies/rls.sql
-[ ] 4. Criar bucket "media" no Supabase Storage → marcar como público (bucket "private_docs" já é criado pela migration 012)
+[ ] 4. Criar bucket "media" no Supabase Storage → marcar como público; usado por imagens de produto e anexos do chat WhatsApp
 [ ] 4b. Confirmar que o schema `audit` (migration 013) foi criado — só existe via SQL direto, não aparece no painel de tabelas padrão do Supabase Studio
 [ ] 4c. Confirmar que a tabela `mfa_backup_codes` (migration 014) foi criada com RLS habilitado
 [ ] 5. Adicionar domínio *.turiapp.com.br na Vercel
@@ -677,11 +679,12 @@ app/
     webhooks/         → stripe, stripe-tenant, mercadopago
     lgpd/             → export, delete
     admin/            → planos, tenants, domains
-    upload/           → Supabase Storage
+    upload/           → Supabase Storage (imagens, mídia do chat e documentos públicos)
     leads/, quotes/   → pipeline de CRM
     automations/      → CRUD de regras
     integrations/     → whatsapp/, webhooks/, api-keys/
     whatsapp/send     → disparo de template
+    conversations/    → inbox WhatsApp, mensagens, anexos e CRM da conversa
     public/           → API REST pública (bookings, products, customers, docs)
     reports/          → monthly.pdf, product/[id]
     cron/             → automations, webhooks-retry, monthly-report
@@ -711,7 +714,7 @@ lib/
   reports/data.ts     → agregação para PDF
   loyalty/            → settings.ts, auth.ts (OTP), earn.ts, ledger.ts
 db/
-  migrations/         → 14 arquivos SQL completos (001 a 014)
+  migrations/         → 26 arquivos SQL completos (001 a 026)
   policies/rls.sql    → RLS em todas as tabelas de tenant
 tests/
   lib/                → crypto, rate-limit, email, utils, mfa-backup-codes

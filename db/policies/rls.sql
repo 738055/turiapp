@@ -1,6 +1,6 @@
 -- ════════════════════════════════════════════════════════════════
 -- Row Level Security Policies — TuriApp
--- Rodar DEPOIS de todas as migrations (001 → 022).
+-- Rodar DEPOIS de todas as migrations (001 → 026).
 --
 -- IDEMPOTENTE: cada policy é precedida de `drop policy if exists`, então este
 -- arquivo pode ser rodado quantas vezes for, em qualquer estado, sem erro de

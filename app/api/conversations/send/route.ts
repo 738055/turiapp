@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
 import { decrypt } from "@/lib/crypto";
-import { sendWhatsAppText, sendWhatsAppTemplate, normalizePhone } from "@/lib/whatsapp/360dialog";
+import { sendWhatsAppText, sendWhatsAppTemplate, sendWhatsAppMedia, normalizePhone } from "@/lib/whatsapp/360dialog";
 import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
 import { recordOutboundMessage } from "@/lib/conversations/store";
 import { checkWhatsAppCircuit, tripWhatsAppCircuit } from "@/lib/whatsapp/circuit-breaker";
@@ -17,6 +17,10 @@ const schema = z.object({
   tenant_id: z.string().uuid(),
   conversation_id: z.string().uuid(),
   body: z.string().max(4096).optional(),
+  // Midia por link; body vira legenda quando o tipo aceitar.
+  media_url: z.string().url().optional(),
+  media_type: z.enum(["image", "document", "audio", "video"]).optional(),
+  filename: z.string().max(255).optional(),
   // Modelo "legado" (hardcoded em lib/whatsapp/templates).
   template_key: z.string().optional(),
   params: z.record(z.string(), z.string()).default({}),
@@ -33,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
-  const { tenant_id, conversation_id, body, template_key, params, template_name, template_language, template_params } = parsed.data;
+  const { tenant_id, conversation_id, body, media_url, media_type, filename, template_key, params, template_name, template_language, template_params } = parsed.data;
 
   const service = createServiceClient();
   const { data: membership } = await service
@@ -76,7 +80,21 @@ export async function POST(req: NextRequest) {
   const apiKey = decrypt(integrations.whatsapp_api_key_encrypted);
 
   try {
-    if (withinWindow && body && body.trim()) {
+    if (withinWindow && media_url) {
+      // Midia por link, so dentro da janela de 24h.
+      const kind = media_type ?? "image";
+      const trimmedBody = body?.trim() || undefined;
+      const res = await sendWhatsAppMedia({ apiKey, to, type: kind, link: media_url, caption: trimmedBody, filename });
+      await recordOutboundMessage(service, tenant_id, conversation_id, {
+        body: kind === "audio" ? null : trimmedBody ?? null, type: kind, mediaUrl: media_url, waMessageId: res.messageId ?? null, senderUserId: user.id, status: "sent",
+      });
+      if (kind === "audio" && trimmedBody) {
+        const textRes = await sendWhatsAppText({ apiKey, to, body: trimmedBody });
+        await recordOutboundMessage(service, tenant_id, conversation_id, {
+          body: trimmedBody, type: "text", waMessageId: textRes.messageId ?? null, senderUserId: user.id, status: "sent",
+        });
+      }
+    } else if (withinWindow && body && body.trim()) {
       // Texto livre permitido.
       const res = await sendWhatsAppText({ apiKey, to, body: body.trim() });
       await recordOutboundMessage(service, tenant_id, conversation_id, {

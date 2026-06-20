@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { recordInboundMessage, updateMessageStatus } from "@/lib/conversations/store";
 import { verifyWhatsappWebhookToken } from "@/lib/whatsapp/webhook-auth";
+import { downloadWhatsAppMedia } from "@/lib/whatsapp/360dialog";
 import { sendPushToUsers } from "@/lib/push/send";
+import { decrypt } from "@/lib/crypto";
 
 // Receives inbound WhatsApp messages forwarded by 360dialog (WhatsApp Cloud API
 // webhook format). The tenant is identified by ?tenant=<slug> — the tenant pastes
@@ -18,24 +20,36 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
+type WaMedia = { id?: string; caption?: string; mime_type?: string; filename?: string };
+type WaMessage = {
+  from?: string;
+  id?: string;
+  type?: string;
+  text?: { body?: string };
+  button?: { text?: string };
+  interactive?: { list_reply?: { title?: string }; button_reply?: { title?: string } };
+  image?: WaMedia;
+  document?: WaMedia;
+  video?: WaMedia;
+  audio?: WaMedia;
+  sticker?: WaMedia;
+};
 interface WaValue {
   contacts?: { profile?: { name?: string }; wa_id?: string }[];
-  messages?: {
-    from?: string;
-    id?: string;
-    type?: string;
-    text?: { body?: string };
-    button?: { text?: string };
-    interactive?: { list_reply?: { title?: string }; button_reply?: { title?: string } };
-  }[];
+  messages?: WaMessage[];
   statuses?: { id?: string; status?: string }[];
 }
 
-function bodyOf(m: NonNullable<WaValue["messages"]>[number]): string | null {
+function bodyOf(m: WaMessage): string | null {
   if (m.type === "text") return m.text?.body ?? null;
   if (m.type === "button") return m.button?.text ?? null;
   if (m.type === "interactive") return m.interactive?.list_reply?.title ?? m.interactive?.button_reply?.title ?? null;
-  return null; // image/audio/document/etc — stored as type only
+  return null;
+}
+
+function mediaOf(m: WaMessage): { id: string; caption: string | null } | null {
+  const md = m.image ?? m.document ?? m.video ?? m.audio ?? m.sticker;
+  return md?.id ? { id: md.id, caption: md.caption ?? null } : null;
 }
 
 export async function POST(req: NextRequest) {
@@ -62,6 +76,17 @@ export async function POST(req: NextRequest) {
   const { data: members } = await service.from("tenant_members").select("user_id").eq("tenant_id", tenant.id);
   const recipientIds = (members ?? []).map((m) => m.user_id as string);
 
+  // Chave do WhatsApp do tenant (para baixar mídias recebidas), uma vez.
+  const { data: integ } = await service
+    .from("tenant_integrations")
+    .select("whatsapp_status, whatsapp_api_key_encrypted")
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  let apiKey: string | null = null;
+  try {
+    if (integ?.whatsapp_status === "connected" && integ.whatsapp_api_key_encrypted) apiKey = decrypt(integ.whatsapp_api_key_encrypted);
+  } catch { /* sem chave → sem download de mídia */ }
+
   try {
     const entries = (payload.entry ?? []) as { changes?: { value?: WaValue }[] }[];
     for (const entry of entries) {
@@ -83,15 +108,29 @@ export async function POST(req: NextRequest) {
         for (const m of value.messages) {
           if (!m.from) continue;
           const contactName = names.get(m.from) ?? null;
-          const body = bodyOf(m);
+
+          // Mídia recebida: baixa do 360dialog e re-hospeda no bucket público.
+          let mediaUrl: string | null = null;
+          const media = mediaOf(m);
+          if (media && apiKey) {
+            const dl = await downloadWhatsAppMedia(apiKey, media.id);
+            if (dl) {
+              const ext = ((dl.contentType.split("/")[1] ?? "bin").split(";")[0]).replace("jpeg", "jpg");
+              const path = `${tenant.id}/whatsapp/${m.id ?? media.id}.${ext}`;
+              const up = await service.storage.from("media").upload(path, dl.bytes, { contentType: dl.contentType, upsert: true });
+              if (!up.error) mediaUrl = service.storage.from("media").getPublicUrl(path).data.publicUrl;
+            }
+          }
+
+          const body = media ? media.caption : bodyOf(m);
           const convId = await recordInboundMessage(service, tenant.id, {
-            phone: m.from, contactName, waMessageId: m.id ?? null, body, type: m.type ?? "text",
+            phone: m.from, contactName, waMessageId: m.id ?? null, body, type: m.type ?? "text", mediaUrl,
           });
           // Push nativo só para mensagens NOVAS (convId != null = não-duplicada).
           if (convId && recipientIds.length) {
             sendPushToUsers(recipientIds, {
               title: `Nova mensagem — ${contactName || m.from}`,
-              body: body ? body.slice(0, 120) : "Enviou uma mídia",
+              body: body ? body.slice(0, 120) : media ? "Enviou uma mídia 📎" : "Enviou uma mensagem",
               url: `/conversas?c=${convId}`,
             }).catch(() => {});
           }

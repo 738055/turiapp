@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   const { data: messages } = await service
     .from("messages")
-    .select("id, direction, type, body, status, created_at")
+    .select("id, direction, type, body, media_url, status, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(500);

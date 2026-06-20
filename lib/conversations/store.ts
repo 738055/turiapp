@@ -13,6 +13,7 @@ export interface InboundMessage {
   waMessageId?: string | null;
   body?: string | null;
   type?: string;
+  mediaUrl?: string | null;
 }
 
 /**
@@ -62,6 +63,7 @@ export async function recordInboundMessage(service: Service, tenantId: string, m
     direction: "inbound",
     type: msg.type ?? "text",
     body: msg.body ?? null,
+    media_url: msg.mediaUrl ?? null,
     wa_message_id: msg.waMessageId ?? null,
   });
   // Duplicate delivery (unique on wa_message_id) — already processed.
@@ -84,6 +86,7 @@ export async function recordInboundMessage(service: Service, tenantId: string, m
 export interface OutboundMessage {
   body?: string | null;
   type?: string;
+  mediaUrl?: string | null;
   waMessageId?: string | null;
   senderUserId?: string | null;
   status?: "sent" | "delivered" | "read" | "failed";
@@ -97,15 +100,17 @@ export async function recordOutboundMessage(service: Service, tenantId: string, 
     direction: "outbound",
     type: msg.type ?? "text",
     body: msg.body ?? null,
+    media_url: msg.mediaUrl ?? null,
     wa_message_id: msg.waMessageId ?? null,
     sender_user_id: msg.senderUserId ?? null,
     status: msg.status ?? "sent",
   });
 
   const now = new Date().toISOString();
+  const fallback = msg.mediaUrl ? `[${msg.type ?? "midia"}]` : "[template]";
   await service
     .from("conversations")
-    .update({ last_message_at: now, last_message_preview: preview(msg.body, "[template]"), status: "open", updated_at: now })
+    .update({ last_message_at: now, last_message_preview: preview(msg.body, fallback), status: "open", updated_at: now })
     .eq("id", conversationId);
 }
 
