@@ -207,6 +207,7 @@ function MarketplaceProductCard({
   const category = productCategoryLabel(product);
   const highlights = (extra.highlights.length ? extra.highlights : extra.included).slice(0, 3);
   const meta = [
+    extra.capacity ? { icon: Users, label: extra.capacity } : null,
     extra.location ? { icon: MapPin, label: extra.location } : null,
     extra.duration ? { icon: Clock, label: extra.duration } : null,
     extra.guideLanguages.length ? { icon: Languages, label: extra.guideLanguages.slice(0, 2).join(", ") } : null,

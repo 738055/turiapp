@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Search } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedPublicTheme } from "@/lib/public-cache";
-import { canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
+import { canonicalUrl, formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 import { lowestRate, type PublicProduct } from "@/lib/storefront-design";
 import { StorefrontProductCard } from "@/components/sections/ProductGridSection";
 
@@ -39,14 +39,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const sp = await searchParams;
   const headersList = await headers();
-  const tenantId = headersList.get("x-tenant-id");
-  if (!tenantId) return { robots: { index: false, follow: false } };
-
-  const seo = await resolveTenantSeoContext(tenantId, headersList);
+  const seo = await resolveTenantSeoContextFromHeaders(headersList);
   if (!seo) return { robots: { index: false, follow: false } };
 
   const hasFilters = Object.values(sp).some((value) => typeof value === "string" && value.trim().length > 0);
-  const title = hasFilters ? `Resultados de busca | ${seo.tenant.name}` : `Busca | ${seo.tenant.name}`;
+  const title = formatTenantPageTitle(hasFilters ? "Resultados de busca" : "Busca", seo.tenant.name);
   const description = `Encontre produtos, pacotes, hospedagens e experiencias de ${seo.tenant.name}.`;
 
   return {

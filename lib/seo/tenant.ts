@@ -7,6 +7,7 @@ const PLATFORM_HOST = cleanHost(
 );
 const ADMIN_HOST = cleanHost(process.env.NEXT_PUBLIC_ADMIN_HOST ?? `admin.${PLATFORM_HOST}`);
 const APP_HOST = cleanHost(process.env.NEXT_PUBLIC_APP_HOST ?? `app.${PLATFORM_HOST}`);
+const STOREFRONT_STATUSES = ["active", "trial"];
 
 type HeaderReader = {
   get(name: string): string | null;
@@ -23,6 +24,11 @@ interface TenantSeoContext {
   requestBaseUrl: string;
   canonicalHost: string;
   canonicalBaseUrl: string;
+}
+
+interface TenantLookupRow {
+  id: string;
+  status: string;
 }
 
 export function cleanHost(value: string | null | undefined): string {
@@ -73,6 +79,59 @@ export function isMarketingHost(host: string): boolean {
 export function isReservedAppHost(host: string): boolean {
   const clean = cleanHost(host);
   return clean === ADMIN_HOST || clean === APP_HOST;
+}
+
+export function formatTenantPageTitle(title: string | null | undefined, tenantName: string): string {
+  const storeName = tenantName.trim() || "Loja";
+  const pageTitle = title?.trim();
+  const normalized = pageTitle?.toLocaleLowerCase("pt-BR");
+
+  if (!pageTitle || normalized === "inicio" || normalized === "início" || normalized === "home") {
+    return storeName;
+  }
+
+  if (pageTitle.toLocaleLowerCase("pt-BR").includes(storeName.toLocaleLowerCase("pt-BR"))) {
+    return pageTitle;
+  }
+
+  return `${pageTitle} | ${storeName}`;
+}
+
+export async function resolveTenantSeoContextFromHeaders(headersList: HeaderReader): Promise<TenantSeoContext | null> {
+  const explicitTenantId = headersList.get("x-tenant-id");
+  if (explicitTenantId) return resolveTenantSeoContext(explicitTenantId, headersList);
+
+  const requestHost = getRequestHost(headersList);
+  if (!requestHost || isMarketingHost(requestHost) || isReservedAppHost(requestHost)) return null;
+
+  const service = createServiceClient();
+  const { data: domainRow } = await service
+    .from("tenant_domains")
+    .select("tenant_id, tenants(id, status)")
+    .eq("domain", requestHost)
+    .eq("verification_status", "verified")
+    .maybeSingle();
+
+  const domainTenant = domainRow?.tenants as unknown as TenantLookupRow | null;
+  if (domainTenant && STOREFRONT_STATUSES.includes(domainTenant.status)) {
+    return resolveTenantSeoContext(domainTenant.id, headersList);
+  }
+
+  if (requestHost.endsWith(`.${PLATFORM_HOST}`)) {
+    const slug = requestHost.replace(`.${PLATFORM_HOST}`, "");
+    if (!slug) return null;
+
+    const { data: tenant } = await service
+      .from("tenants")
+      .select("id, status")
+      .eq("slug", slug)
+      .in("status", STOREFRONT_STATUSES)
+      .maybeSingle();
+
+    if (tenant) return resolveTenantSeoContext(tenant.id, headersList);
+  }
+
+  return null;
 }
 
 export async function resolveTenantSeoContext(

@@ -79,6 +79,43 @@ interface ProductExtraForm {
   bathrooms: string;
 }
 
+interface RateTypeOption {
+  value: ProductRate["rate_type"];
+  label: string;
+}
+
+interface ProductContentProfile {
+  intro: string;
+  durationLabel: string;
+  durationPlaceholder: string;
+  locationLabel: string;
+  locationPlaceholder: string;
+  capacityLabel?: string;
+  capacityPlaceholder?: string;
+  showBedrooms: boolean;
+  showBathrooms: boolean;
+  showGuideLanguages: boolean;
+  guideLanguagesLabel: string;
+  guideLanguagesPlaceholder: string;
+  showItinerary: boolean;
+  itineraryLabel: string;
+  itineraryHelp: string;
+  itineraryTimeLabel: string;
+  itineraryTimePlaceholder: string;
+  itineraryTitlePlaceholder: string;
+  itineraryDescriptionPlaceholder: string;
+  highlightsPlaceholder: string;
+  includedPlaceholder: string;
+  notIncludedPlaceholder: string;
+  importantPlaceholder: string;
+  cancellationPlaceholder: string;
+  rateIntro: string;
+  rateTypes: RateTypeOption[];
+  rateMinLabel: string;
+  rateMaxLabel: string;
+  defaultMax: string;
+}
+
 interface ProductFormProps {
   tenantId: string;
   defaultWhatsapp: string;
@@ -86,6 +123,184 @@ interface ProductFormProps {
   initialProduct?: Product & { rates?: ProductRate[] };
   /** When false (plano Básico), the online booking mode is locked behind a Pro upsell. */
   bookingEngineAllowed?: boolean;
+}
+
+function moduleDisplayName(module: ProductModule): string {
+  if (module === "hospedagem") return "Hospedagem";
+  if (module === "emissivo") return "Emissivo";
+  return "Receptivo";
+}
+
+function getProductContentProfile(module: ProductModule, type: ProductType): ProductContentProfile {
+  const common = {
+    showBedrooms: false,
+    showBathrooms: false,
+    showGuideLanguages: false,
+    guideLanguagesLabel: "Idiomas do guia",
+    guideLanguagesPlaceholder: "Portugues",
+    showItinerary: true,
+    itineraryLabel: "Roteiro",
+    itineraryHelp: "Cadastre uma etapa por vez. A pagina do produto monta uma linha do tempo com essas informacoes.",
+    itineraryTimeLabel: "Horario / periodo",
+    itineraryTimePlaceholder: "08:00",
+    itineraryTitlePlaceholder: "Inicio da experiencia",
+    itineraryDescriptionPlaceholder: "Explique o que acontece nesta etapa.",
+    highlightsPlaceholder: "Atendimento local",
+    includedPlaceholder: "Item incluso",
+    notIncludedPlaceholder: "Item nao incluso",
+    importantPlaceholder: "Documentos, ponto de encontro, idade minima, regras de embarque...",
+    cancellationPlaceholder: "Ex: Cancelamento sem custo ate 24h antes.",
+    rateIntro: "Use tarifas por temporada, feriados, datas especiais ou lotes promocionais.",
+    rateTypes: [
+      { value: "per_person", label: "Por pessoa" },
+      { value: "per_group", label: "Por grupo/reserva" },
+      { value: "fixed", label: "Fixo" },
+    ] satisfies RateTypeOption[],
+    rateMinLabel: "Pessoas minimas",
+    rateMaxLabel: "Pessoas maximas",
+    defaultMax: "10",
+  };
+
+  if (module === "hospedagem") {
+    return {
+      ...common,
+      intro: "Campos para cards, detalhes da acomodacao, pagina do produto e modelos de loja de hospedagem.",
+      durationLabel: "Periodo / regra de diaria",
+      durationPlaceholder: "Ex: Minimo de 2 diarias, diaria flexivel",
+      locationLabel: "Regiao / endereco resumido",
+      locationPlaceholder: "Ex: Centro de Gramado, frente ao mar",
+      capacityLabel: "Capacidade",
+      capacityPlaceholder: "Ex: Ate 4 hospedes",
+      showBedrooms: true,
+      showBathrooms: true,
+      showItinerary: false,
+      highlightsPlaceholder: "Cafe da manha incluso",
+      includedPlaceholder: "Roupa de cama e banho",
+      notIncludedPlaceholder: "Taxa de limpeza",
+      importantPlaceholder: "Check-in, check-out, regras da casa, acessibilidade, estacionamento...",
+      cancellationPlaceholder: "Ex: Cancelamento sem custo ate 7 dias antes do check-in.",
+      rateTypes: [
+        { value: "per_night", label: "Por noite" },
+        { value: "fixed", label: "Fixo por reserva" },
+        { value: "per_person", label: "Por hospede" },
+      ],
+      rateMinLabel: "Hospedes minimos",
+      rateMaxLabel: "Hospedes maximos",
+      defaultMax: "2",
+    };
+  }
+
+  if (module === "receptivo" && type === "ingresso") {
+    return {
+      ...common,
+      intro: "Campos para ingresso, voucher, regras de uso, atrativo e detalhes que aparecem na loja.",
+      durationLabel: "Validade / horario de uso",
+      durationPlaceholder: "Ex: Valido para o dia escolhido, das 9h as 18h",
+      locationLabel: "Atrativo / local de uso",
+      locationPlaceholder: "Ex: Parque Nacional, Museu, Show",
+      capacityLabel: "Limite por compra",
+      capacityPlaceholder: "Ex: Ate 10 ingressos por compra",
+      showItinerary: false,
+      highlightsPlaceholder: "Voucher digital",
+      includedPlaceholder: "Entrada no atrativo",
+      notIncludedPlaceholder: "Transporte ate o local",
+      importantPlaceholder: "Como usar o voucher, documento necessario, regras de meia entrada, validade...",
+      cancellationPlaceholder: "Ex: Ingresso reembolsavel ate 24h antes da data marcada.",
+      rateTypes: [
+        { value: "per_person", label: "Por ingresso/pessoa" },
+        { value: "fixed", label: "Fixo por compra" },
+      ],
+      rateMinLabel: "Ingressos minimos",
+      rateMaxLabel: "Ingressos maximos",
+      defaultMax: "10",
+    };
+  }
+
+  if (module === "receptivo" && type === "transporte") {
+    return {
+      ...common,
+      intro: "Campos para transfer, traslado, transporte privativo ou compartilhado.",
+      durationLabel: "Duracao estimada / janela",
+      durationPlaceholder: "Ex: 45 minutos, saidas entre 8h e 10h",
+      locationLabel: "Rota / origem e destino",
+      locationPlaceholder: "Ex: Aeroporto > Hotel, Foz > Cataratas",
+      capacityLabel: "Capacidade do veiculo",
+      capacityPlaceholder: "Ex: Ate 4 passageiros, van ate 15 pessoas",
+      showItinerary: true,
+      itineraryLabel: "Trajeto",
+      itineraryHelp: "Cadastre trechos, paradas ou pontos de embarque na ordem em que acontecem.",
+      itineraryTimeLabel: "Horario / janela",
+      itineraryTimePlaceholder: "08:00-09:00",
+      itineraryTitlePlaceholder: "Embarque no hotel",
+      itineraryDescriptionPlaceholder: "Detalhe o ponto de encontro, parada ou trecho.",
+      highlightsPlaceholder: "Motorista privativo",
+      includedPlaceholder: "Veiculo com ar-condicionado",
+      notIncludedPlaceholder: "Paradas extras",
+      importantPlaceholder: "Bagagem permitida, tolerancia de atraso, ponto de encontro, regras de embarque...",
+      rateTypes: [
+        { value: "per_group", label: "Por veiculo/grupo" },
+        { value: "per_person", label: "Por passageiro" },
+        { value: "fixed", label: "Fixo" },
+      ],
+      rateMinLabel: "Passageiros minimos",
+      rateMaxLabel: "Passageiros maximos",
+      defaultMax: "4",
+    };
+  }
+
+  if (module === "emissivo") {
+    return {
+      ...common,
+      intro: "Campos para pacotes, viagens, cruzeiros e roteiros vendidos por agencia.",
+      durationLabel: "Duracao da viagem",
+      durationPlaceholder: "Ex: 5 dias / 4 noites, 8 dias / 7 noites",
+      locationLabel: "Destino",
+      locationPlaceholder: "Ex: Gramado e Canela, Caribe, Europa",
+      capacityLabel: "Grupo / vagas",
+      capacityPlaceholder: "Ex: Grupo minimo 10 pessoas, saida para ate 30 passageiros",
+      showGuideLanguages: true,
+      guideLanguagesLabel: "Idiomas / suporte",
+      guideLanguagesPlaceholder: "Portugues, espanhol, suporte da agencia",
+      highlightsPlaceholder: "Hoteis selecionados",
+      includedPlaceholder: "Hospedagem conforme roteiro",
+      notIncludedPlaceholder: "Passagens nao descritas",
+      importantPlaceholder: "Documentacao, visto, seguro, bagagem, regras de parcelamento, taxas locais...",
+      cancellationPlaceholder: "Ex: Condicoes conforme contrato, fornecedor e data de embarque.",
+      rateTypes: [
+        { value: "per_person", label: "Por viajante" },
+        { value: "per_group", label: "Por pacote/grupo" },
+        { value: "fixed", label: "Fixo" },
+      ],
+      rateMinLabel: "Viajantes minimos",
+      rateMaxLabel: "Viajantes maximos",
+      defaultMax: "2",
+    };
+  }
+
+  return {
+    ...common,
+    intro: "Campos para passeio, experiencia, city tour ou atividade receptiva.",
+    durationLabel: "Duracao do passeio",
+    durationPlaceholder: "Ex: 6 horas, meio periodo, dia inteiro",
+    locationLabel: "Destino / ponto de encontro",
+    locationPlaceholder: "Ex: Foz do Iguacu, hotel do cliente, centro historico",
+    capacityLabel: "Vagas / capacidade",
+    capacityPlaceholder: "Ex: Ate 15 pessoas por saida",
+    showGuideLanguages: true,
+    highlightsPlaceholder: "Guia local credenciado",
+    includedPlaceholder: "Transporte durante o passeio",
+    notIncludedPlaceholder: "Alimentacao",
+    importantPlaceholder: "Ponto de encontro, documentos, roupa recomendada, acessibilidade, restricoes...",
+    cancellationPlaceholder: "Ex: Cancelamento sem custo ate 24h antes do passeio.",
+    rateTypes: [
+      { value: "per_person", label: "Por pessoa" },
+      { value: "per_group", label: "Por grupo/reserva" },
+      { value: "fixed", label: "Fixo" },
+    ],
+    rateMinLabel: "Pessoas minimas",
+    rateMaxLabel: "Pessoas maximas",
+    defaultMax: "10",
+  };
 }
 
 export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, bookingEngineAllowed = true }: ProductFormProps) {
@@ -144,9 +359,26 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
   );
 
   const currentModule = MODULES.find((m) => m.id === form.module);
+  const currentType = currentModule?.types.find((t) => t.id === form.type);
+  const productProfile = getProductContentProfile(form.module, form.type);
 
   function update(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function changeProductKind(module: ProductModule, type: ProductType) {
+    const nextProfile = getProductContentProfile(module, type);
+    const allowedRateTypes = new Set(nextProfile.rateTypes.map((option) => option.value));
+    const fallbackRateType = nextProfile.rateTypes[0]?.value ?? "fixed";
+
+    setForm((f) => ({ ...f, module, type }));
+    setRates((current) =>
+      current.map((rate) =>
+        allowedRateTypes.has(rate.rate_type as ProductRate["rate_type"])
+          ? rate
+          : { ...rate, rate_type: fallbackRateType }
+      )
+    );
   }
 
   function updateExtra<K extends keyof ProductExtraForm>(field: K, value: ProductExtraForm[K]) {
@@ -164,12 +396,12 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
         id: crypto.randomUUID(),
         name: "Tarifa padrão",
         price: "",
-        rate_type: "fixed",
+        rate_type: productProfile.rateTypes[0]?.value ?? "fixed",
         valid_from: "",
         valid_to: "",
         season_name: "",
         occupancy_min: "1",
-        occupancy_max: "10",
+        occupancy_max: productProfile.defaultMax,
       },
     ]);
   }
@@ -234,10 +466,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
             {MODULES.map((m) => (
               <button
                 key={m.id}
-                onClick={() => {
-                  update("module", m.id);
-                  update("type", m.types[0].id);
-                }}
+                onClick={() => changeProductKind(m.id, m.types[0].id)}
                 className={`rounded-full border px-4 py-1.5 text-sm transition-all ${
                   form.module === m.id
                     ? "border-sky-500 bg-sky-50 text-sky-700 font-medium"
@@ -252,7 +481,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
             {currentModule?.types.map((t) => (
               <button
                 key={t.id}
-                onClick={() => update("type", t.id)}
+                onClick={() => changeProductKind(form.module, t.id)}
                 className={`rounded-full border px-3 py-1 text-xs transition-all ${
                   form.type === t.id
                     ? "border-sky-500 bg-sky-50 text-sky-700 font-medium"
@@ -328,49 +557,68 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
 
       {/* Layout content */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Conteudo usado no layout</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Conteudo usado no layout</CardTitle>
+          <p className="text-xs text-gray-400">
+            {moduleDisplayName(form.module)} / {currentType?.label}
+          </p>
+        </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-500">
-            Estes campos alimentam os cards, a pagina do produto e os modelos de loja escolhidos no onboarding.
+            {productProfile.intro}
           </p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Duracao / periodo</Label>
-              <Input value={extra.duration} onChange={(e) => updateExtra("duration", e.target.value)} placeholder="Ex: 6 horas, 5 dias / 4 noites" />
+              <Label>{productProfile.durationLabel}</Label>
+              <Input value={extra.duration} onChange={(e) => updateExtra("duration", e.target.value)} placeholder={productProfile.durationPlaceholder} />
             </div>
             <div className="space-y-1.5">
-              <Label>Local / destino</Label>
-              <Input value={extra.location} onChange={(e) => updateExtra("location", e.target.value)} placeholder="Ex: Foz do Iguacu, Gramado e Canela" />
+              <Label>{productProfile.locationLabel}</Label>
+              <Input value={extra.location} onChange={(e) => updateExtra("location", e.target.value)} placeholder={productProfile.locationPlaceholder} />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label>Capacidade</Label>
-              <Input value={extra.capacity} onChange={(e) => updateExtra("capacity", e.target.value)} placeholder="Ex: Ate 4 pessoas" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Quartos</Label>
-              <Input value={extra.bedrooms} onChange={(e) => updateExtra("bedrooms", e.target.value)} placeholder="Ex: 2 quartos" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Banheiros</Label>
-              <Input value={extra.bathrooms} onChange={(e) => updateExtra("bathrooms", e.target.value)} placeholder="Ex: 1 banheiro" />
-            </div>
+            {productProfile.capacityLabel && (
+              <div className="space-y-1.5">
+                <Label>{productProfile.capacityLabel}</Label>
+                <Input value={extra.capacity} onChange={(e) => updateExtra("capacity", e.target.value)} placeholder={productProfile.capacityPlaceholder} />
+              </div>
+            )}
+            {productProfile.showBedrooms && (
+              <div className="space-y-1.5">
+                <Label>Quartos</Label>
+                <Input value={extra.bedrooms} onChange={(e) => updateExtra("bedrooms", e.target.value)} placeholder="Ex: 2 quartos" />
+              </div>
+            )}
+            {productProfile.showBathrooms && (
+              <div className="space-y-1.5">
+                <Label>Banheiros</Label>
+                <Input value={extra.bathrooms} onChange={(e) => updateExtra("bathrooms", e.target.value)} placeholder="Ex: 1 banheiro" />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder="Transfer incluso" addLabel="Adicionar destaque" />
-            <ListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder="Transporte" addLabel="Adicionar item incluso" />
-            <ListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder="Alimentacao" addLabel="Adicionar item nao incluso" />
+            <ListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder={productProfile.highlightsPlaceholder} addLabel="Adicionar destaque" />
+            <ListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder={productProfile.includedPlaceholder} addLabel="Adicionar item incluso" />
+            <ListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder={productProfile.notIncludedPlaceholder} addLabel="Adicionar item nao incluso" />
             <div className="space-y-1.5">
               <Label>Informacoes importantes</Label>
               <textarea
                 value={extra.important_info}
                 onChange={(e) => updateExtra("important_info", e.target.value)}
                 className="h-24 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
-                placeholder="Documentos, ponto de encontro, idade minima, regras de embarque..."
+                placeholder={productProfile.importantPlaceholder}
               />
             </div>
-            <ListField label="Idiomas do guia" value={extra.guide_languages} onChange={(value) => updateExtra("guide_languages", value)} placeholder="Portugues" addLabel="Adicionar idioma" />
+            {productProfile.showGuideLanguages && (
+              <ListField
+                label={productProfile.guideLanguagesLabel}
+                value={extra.guide_languages}
+                onChange={(value) => updateExtra("guide_languages", value)}
+                placeholder={productProfile.guideLanguagesPlaceholder}
+                addLabel="Adicionar idioma"
+              />
+            )}
             <ListField label="Galeria adicional por URL" value={extra.gallery} onChange={(value) => updateExtra("gallery", value)} placeholder="https://..." addLabel="Adicionar foto por URL" />
           </div>
           <div className="space-y-1.5">
@@ -379,10 +627,21 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
               value={extra.cancellation_policy}
               onChange={(e) => updateExtra("cancellation_policy", e.target.value)}
               className="h-20 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
-              placeholder="Ex: Cancelamento sem custo ate 24h antes do passeio."
+              placeholder={productProfile.cancellationPlaceholder}
             />
           </div>
-          <ItineraryField value={extra.itinerary} onChange={(value) => updateExtra("itinerary", value)} />
+          {productProfile.showItinerary && (
+            <ItineraryField
+              value={extra.itinerary}
+              onChange={(value) => updateExtra("itinerary", value)}
+              label={productProfile.itineraryLabel}
+              help={productProfile.itineraryHelp}
+              timeLabel={productProfile.itineraryTimeLabel}
+              timePlaceholder={productProfile.itineraryTimePlaceholder}
+              titlePlaceholder={productProfile.itineraryTitlePlaceholder}
+              descriptionPlaceholder={productProfile.itineraryDescriptionPlaceholder}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -450,6 +709,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
+            <p className="text-sm text-gray-500">{productProfile.rateIntro}</p>
             {!rates.length && (
               <p className="text-sm text-gray-400 text-center py-4">
                 Adicione pelo menos uma tarifa para ativar o motor de reservas.
@@ -480,10 +740,9 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
                     <select value={rate.rate_type}
                       onChange={(e) => updateRate(rate.id, "rate_type", e.target.value)}
                       className="w-full rounded border border-gray-200 px-2 py-1 text-xs h-8">
-                      <option value="fixed">Fixo (por grupo/reserva)</option>
-                      <option value="per_person">Por pessoa</option>
-                      <option value="per_night">Por noite</option>
-                      <option value="per_group">Por grupo</option>
+                      {productProfile.rateTypes.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -507,13 +766,13 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Ocupação mínima</Label>
+                    <Label className="text-xs">{productProfile.rateMinLabel}</Label>
                     <Input type="number" value={rate.occupancy_min}
                       onChange={(e) => updateRate(rate.id, "occupancy_min", e.target.value)}
                       className="h-8 text-xs" min={1} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Ocupação máxima</Label>
+                    <Label className="text-xs">{productProfile.rateMaxLabel}</Label>
                     <Input type="number" value={rate.occupancy_max}
                       onChange={(e) => updateRate(rate.id, "occupancy_max", e.target.value)}
                       className="h-8 text-xs" min={1} />
@@ -625,7 +884,25 @@ function ListField({
   );
 }
 
-function ItineraryField({ value, onChange }: { value: ItineraryStepForm[]; onChange: (value: ItineraryStepForm[]) => void }) {
+function ItineraryField({
+  value,
+  onChange,
+  label,
+  help,
+  timeLabel,
+  timePlaceholder,
+  titlePlaceholder,
+  descriptionPlaceholder,
+}: {
+  value: ItineraryStepForm[];
+  onChange: (value: ItineraryStepForm[]) => void;
+  label: string;
+  help: string;
+  timeLabel: string;
+  timePlaceholder: string;
+  titlePlaceholder: string;
+  descriptionPlaceholder: string;
+}) {
   const steps = value.length ? value : [{ title: "", description: "", time: "" }];
 
   function updateStep(index: number, field: keyof ItineraryStepForm, fieldValue: string) {
@@ -642,8 +919,8 @@ function ItineraryField({ value, onChange }: { value: ItineraryStepForm[]; onCha
   return (
     <div className="space-y-3">
       <div>
-        <Label>Roteiro</Label>
-        <p className="mt-1 text-xs text-gray-400">Cadastre uma etapa por vez. O layout usa isso para montar a linha do tempo da pagina do produto.</p>
+        <Label>{label}</Label>
+        <p className="mt-1 text-xs text-gray-400">{help}</p>
       </div>
       <div className="space-y-3">
         {steps.map((step, index) => (
@@ -659,12 +936,12 @@ function ItineraryField({ value, onChange }: { value: ItineraryStepForm[]; onCha
             <p className="mb-3 text-xs font-semibold uppercase text-gray-400">Etapa {index + 1}</p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
               <div className="space-y-1">
-                <Label className="text-xs">Horario / periodo</Label>
-                <Input value={step.time} onChange={(e) => updateStep(index, "time", e.target.value)} placeholder="08:00" className="h-8 text-xs" />
+                <Label className="text-xs">{timeLabel}</Label>
+                <Input value={step.time} onChange={(e) => updateStep(index, "time", e.target.value)} placeholder={timePlaceholder} className="h-8 text-xs" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Titulo da etapa</Label>
-                <Input value={step.title} onChange={(e) => updateStep(index, "title", e.target.value)} placeholder="Chegada e orientacoes" className="h-8 text-xs" />
+                <Input value={step.title} onChange={(e) => updateStep(index, "title", e.target.value)} placeholder={titlePlaceholder} className="h-8 text-xs" />
               </div>
             </div>
             <div className="mt-3 space-y-1">
@@ -673,7 +950,7 @@ function ItineraryField({ value, onChange }: { value: ItineraryStepForm[]; onCha
                 value={step.description}
                 onChange={(e) => updateStep(index, "description", e.target.value)}
                 className="h-20 w-full resize-none rounded border border-gray-200 px-3 py-2 text-xs"
-                placeholder="Explique o que acontece nesta etapa."
+                placeholder={descriptionPlaceholder}
               />
             </div>
           </div>

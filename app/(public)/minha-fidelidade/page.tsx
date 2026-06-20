@@ -3,10 +3,16 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { LoyaltyAccount } from "@/components/public/LoyaltyAccount";
+import { formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await resolveTenantSeoContextFromHeaders(await headers());
+
+  return {
+    title: seo ? formatTenantPageTitle("Fidelidade", seo.tenant.name) : "Fidelidade",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function FidelidadePublicPage() {
   const headersList = await headers();

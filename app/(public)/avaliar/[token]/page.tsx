@@ -3,12 +3,34 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { hashReviewToken } from "@/lib/reviews/token";
+import { formatTenantPageTitle } from "@/lib/seo/tenant";
 import { ReviewForm } from "@/components/public/ReviewForm";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const headersList = await headers();
+  const tenantId = headersList.get("x-tenant-id");
+  const service = createServiceClient();
+  const { data: review } = await service
+    .from("reviews")
+    .select("tenant_id, products(title)")
+    .eq("token_hash", hashReviewToken(token))
+    .maybeSingle();
+
+  if (!review || (tenantId && review.tenant_id !== tenantId)) {
+    return { title: "Avaliação", robots: { index: false, follow: false } };
+  }
+
+  const { data: tenant } = await service.from("tenants").select("name").eq("id", review.tenant_id).maybeSingle();
+  const productTitle = (review.products as unknown as { title: string } | null)?.title;
+
+  return {
+    title: tenant ? formatTenantPageTitle(productTitle ? `Avaliação: ${productTitle}` : "Avaliação", tenant.name) : "Avaliação",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AvaliarPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

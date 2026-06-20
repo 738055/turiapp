@@ -2,11 +2,18 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { CartView } from "@/components/public/CartView";
+import { formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await resolveTenantSeoContextFromHeaders(await headers());
+
+  return {
+    title: seo ? formatTenantPageTitle("Carrinho", seo.tenant.name) : "Carrinho",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function CarrinhoPage() {
   const headersList = await headers();

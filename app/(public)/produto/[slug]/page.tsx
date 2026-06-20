@@ -25,7 +25,7 @@ import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
-import { absoluteUrl, canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
+import { absoluteUrl, canonicalUrl, formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 import {
   lowestRate,
   productCategoryLabel,
@@ -44,23 +44,20 @@ interface ProductPageProps {
 export async function generateMetadata({ params }: ProductPageProps) {
   const { slug } = await params;
   const headersList = await headers();
-  const tenantId = headersList.get("x-tenant-id");
-  if (!tenantId) return {};
+  const seo = await resolveTenantSeoContextFromHeaders(headersList);
+  if (!seo) return {};
 
-  const [seo, { data: product }] = await Promise.all([
-    resolveTenantSeoContext(tenantId, headersList),
-    createServiceClient()
-      .from("products")
-      .select("title, seo_title, seo_description, og_image_url, images")
-      .eq("tenant_id", tenantId)
-      .eq("slug", slug)
-      .eq("status", "published")
-      .single(),
-  ]);
+  const { data: product } = await createServiceClient()
+    .from("products")
+    .select("title, seo_title, seo_description, og_image_url, images")
+    .eq("tenant_id", seo.tenant.id)
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single();
 
-  if (!product || !seo) return {};
+  if (!product) return {};
 
-  const title = product.seo_title ?? product.title;
+  const title = formatTenantPageTitle(product.seo_title ?? product.title, seo.tenant.name);
   const description = product.seo_description ?? undefined;
   const image = absoluteUrl(seo.canonicalBaseUrl, product.og_image_url ?? product.images?.[0]);
   const canonicalPath = `/produto/${slug}`;
@@ -90,14 +87,14 @@ export async function generateMetadata({ params }: ProductPageProps) {
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const headersList = await headers();
-  const tenantId = headersList.get("x-tenant-id");
+  const seo = await resolveTenantSeoContextFromHeaders(headersList);
+  const tenantId = headersList.get("x-tenant-id") ?? seo?.tenant.id;
 
   if (!tenantId && process.env.NODE_ENV !== "development") notFound();
 
-  const [product, theme, seo] = await Promise.all([
+  const [product, theme] = await Promise.all([
     getCachedPublicProduct(tenantId ?? "", slug),
     getCachedPublicTheme(tenantId ?? ""),
-    tenantId ? resolveTenantSeoContext(tenantId, headersList) : Promise.resolve(null),
   ]);
 
   if (!product) notFound();
@@ -364,6 +361,7 @@ function ProductSpecs({ product, extra }: { product: PublicProduct; extra: Retur
           extra.bathrooms ? { icon: Bath, label: extra.bathrooms, title: "Banheiros" } : null,
         ]
       : [
+          extra.capacity ? { icon: Users, label: extra.capacity, title: productCapacityTitle(product) } : null,
           extra.duration ? { icon: Clock, label: extra.duration, title: "Duracao" } : null,
           extra.location ? { icon: MapPin, label: extra.location, title: "Destino" } : null,
           extra.guideLanguages.length ? { icon: Languages, label: extra.guideLanguages.join(", "), title: "Idiomas" } : null,
@@ -382,6 +380,13 @@ function ProductSpecs({ product, extra }: { product: PublicProduct; extra: Retur
       ))}
     </div>
   );
+}
+
+function productCapacityTitle(product: PublicProduct): string {
+  if (product.type === "ingresso") return "Limite";
+  if (product.type === "transporte") return "Capacidade";
+  if (product.module === "emissivo") return "Grupo";
+  return "Vagas";
 }
 
 function InfoPanel({

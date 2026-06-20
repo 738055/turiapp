@@ -2,14 +2,25 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
+import { formatTenantPageTitle } from "@/lib/seo/tenant";
 import { QuoteResponseWidget } from "@/components/public/QuoteResponseWidget";
-
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
 
 interface QuotePageProps {
   params: Promise<{ token: string }>;
+}
+
+export async function generateMetadata({ params }: QuotePageProps): Promise<Metadata> {
+  const { token } = await params;
+  const service = createServiceClient();
+  const { data: quote } = await service.from("quotes").select("tenant_id").eq("token", token).maybeSingle();
+  if (!quote) return { title: "Cotação", robots: { index: false, follow: false } };
+
+  const { data: tenant } = await service.from("tenants").select("name").eq("id", quote.tenant_id).maybeSingle();
+
+  return {
+    title: tenant ? formatTenantPageTitle("Cotação", tenant.name) : "Cotação",
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function QuotePage({ params }: QuotePageProps) {
