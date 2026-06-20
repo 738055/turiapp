@@ -26,20 +26,32 @@ export default async function PageEditorPage({
 
   if (!page) notFound();
 
-  const { data: theme } = await supabase
-    .from("themes")
-    .select("*")
-    .eq("tenant_id", membership!.tenant_id)
-    .single();
-
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("slug")
-    .eq("id", membership!.tenant_id)
-    .single();
+  const [{ data: theme }, { data: tenant }, { data: customDomain }] = await Promise.all([
+    supabase
+      .from("themes")
+      .select("*")
+      .eq("tenant_id", membership!.tenant_id)
+      .single(),
+    supabase
+      .from("tenants")
+      .select("slug")
+      .eq("id", membership!.tenant_id)
+      .single(),
+    supabase
+      .from("tenant_domains")
+      .select("domain")
+      .eq("tenant_id", membership!.tenant_id)
+      .eq("type", "custom")
+      .eq("verification_status", "verified")
+      .eq("ssl_status", "issued")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const platformHost = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? "turiapp.com.br";
-  const previewUrl = tenant?.slug ? `https://${tenant.slug}.${platformHost}` : null;
+  const previewHost = customDomain?.domain ?? (tenant?.slug ? `${tenant.slug}.${platformHost}` : null);
+  const previewUrl = previewHost ? `https://${previewHost}` : null;
 
   return (
     <div className="space-y-4">

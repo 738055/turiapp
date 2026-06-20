@@ -67,8 +67,8 @@ const CSP = [
   "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://www.facebook.com https://www.google-analytics.com",
   // Connect (API calls, Supabase realtime)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.mercadopago.com https://www.google-analytics.com https://analytics.google.com",
-  // Frames: Stripe + tenant storefront previews. Embedding is still restricted by frame-ancestors.
-  `frame-src 'self' https://js.stripe.com https://hooks.stripe.com ${PREVIEW_CHILD_FRAME_SOURCES}`,
+  // Frames: tenants can preview verified custom domains. Embedding is still restricted by frame-ancestors.
+  `frame-src 'self' https: ${PREVIEW_CHILD_FRAME_SOURCES}`,
   `frame-ancestors 'self' ${ALLOWED_FRAME_ANCESTORS}`,
   // Media
   "media-src 'self' https://*.supabase.co",

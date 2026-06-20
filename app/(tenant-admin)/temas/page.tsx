@@ -17,7 +17,7 @@ export default async function TemasPage() {
     .eq("tenant_id", membership!.tenant_id)
     .single();
 
-  const [{ data: tenant }, { data: homePage }] = await Promise.all([
+  const [{ data: tenant }, { data: homePage }, { data: customDomain }] = await Promise.all([
     supabase
       .from("tenants")
       .select("name, slug")
@@ -29,10 +29,21 @@ export default async function TemasPage() {
       .eq("tenant_id", membership!.tenant_id)
       .eq("is_home", true)
       .maybeSingle(),
+    supabase
+      .from("tenant_domains")
+      .select("domain")
+      .eq("tenant_id", membership!.tenant_id)
+      .eq("type", "custom")
+      .eq("verification_status", "verified")
+      .eq("ssl_status", "issued")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const platformHost = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? "turiapp.com.br";
-  const storeUrl = tenant?.slug ? `https://${tenant.slug}.${platformHost}` : null;
+  const storeHost = customDomain?.domain ?? (tenant?.slug ? `${tenant.slug}.${platformHost}` : null);
+  const storeUrl = storeHost ? `https://${storeHost}` : null;
 
   return (
     <div className="space-y-6">

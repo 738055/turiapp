@@ -1,54 +1,77 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  Package,
-  FileText,
-  Palette,
-  CreditCard,
-  Settings2,
-  CalendarCheck,
-  Users,
-  UserPlus,
-  Puzzle,
-  ChevronRight,
-  Globe,
-  Target,
-  FileSignature,
-  Zap,
-  MessageCircle,
-  Inbox,
   BarChart3,
+  CalendarCheck,
+  ChevronRight,
+  CreditCard,
+  FileSignature,
+  FileText,
   Gift,
+  Globe,
+  Inbox,
+  LayoutDashboard,
+  MessageCircle,
+  Package,
+  Palette,
+  Puzzle,
+  Settings2,
   Star,
+  Target,
   Ticket,
+  UserPlus,
+  Users,
+  Zap,
 } from "lucide-react";
 import { roleAtLeast, type TenantRole } from "@/lib/auth/roles";
+import { cn } from "@/lib/utils";
 
-const navItems: { label: string; href: string; icon: typeof LayoutDashboard; minRole?: TenantRole }[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Produtos", href: "/produtos", icon: Package },
-  { label: "Reservas", href: "/reservas", icon: CalendarCheck },
-  { label: "Leads", href: "/leads", icon: Target },
-  { label: "Cotações", href: "/cotacoes", icon: FileSignature },
-  { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Atendimento", href: "/conversas", icon: Inbox },
-  { label: "Automações", href: "/automacoes", icon: Zap },
-  { label: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3 },
-  { label: "Fidelidade", href: "/fidelidade", icon: Gift },
-  { label: "Cupons", href: "/cupons", icon: Ticket, minRole: "tenant_admin" },
-  { label: "Avaliações", href: "/avaliacoes", icon: Star },
-  { label: "Páginas", href: "/paginas", icon: FileText },
-  { label: "Aparência", href: "/temas", icon: Palette },
-  { label: "Pagamentos", href: "/pagamentos", icon: CreditCard, minRole: "tenant_owner" },
-  { label: "Integrações", href: "/integracoes", icon: Puzzle, minRole: "tenant_admin" },
-  { label: "Equipe", href: "/equipe", icon: UserPlus, minRole: "tenant_admin" },
-  { label: "Configurações", href: "/configuracoes", icon: Settings2 },
+type NavIcon = typeof LayoutDashboard;
+type NavItem = { label: string; href: string; icon: NavIcon; minRole?: TenantRole };
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Visao geral",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Relatorios", href: "/relatorios", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Loja e aparencia",
+    items: [
+      { label: "Produtos", href: "/produtos", icon: Package },
+      { label: "Reservas", href: "/reservas", icon: CalendarCheck },
+      { label: "Aparencia", href: "/temas", icon: Palette },
+      { label: "Paginas", href: "/paginas", icon: FileText },
+      { label: "Cupons", href: "/cupons", icon: Ticket, minRole: "tenant_admin" },
+      { label: "Avaliacoes", href: "/avaliacoes", icon: Star },
+      { label: "Fidelidade", href: "/fidelidade", icon: Gift },
+    ],
+  },
+  {
+    label: "CRM e vendas",
+    items: [
+      { label: "Leads", href: "/leads", icon: Target },
+      { label: "Cotacoes", href: "/cotacoes", icon: FileSignature },
+      { label: "Clientes", href: "/clientes", icon: Users },
+      { label: "Atendimento", href: "/conversas", icon: Inbox },
+      { label: "Automacoes", href: "/automacoes", icon: Zap },
+    ],
+  },
+  {
+    label: "Canais e ajustes",
+    items: [
+      { label: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
+      { label: "Pagamentos", href: "/pagamentos", icon: CreditCard, minRole: "tenant_owner" },
+      { label: "Integracoes", href: "/integracoes", icon: Puzzle, minRole: "tenant_admin" },
+      { label: "Equipe", href: "/equipe", icon: UserPlus, minRole: "tenant_admin" },
+      { label: "Configuracoes", href: "/configuracoes", icon: Settings2 },
+    ],
+  },
 ];
 
 interface AdminSidebarProps {
@@ -62,71 +85,82 @@ const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
 
 export function AdminSidebar({ tenantId, tenantName, tenantSlug, role }: AdminSidebarProps) {
   const pathname = usePathname();
-  const visibleItems = navItems.filter((item) => !item.minRole || roleAtLeast(role, item.minRole));
   const [unread, setUnread] = useState(0);
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.minRole || roleAtLeast(role, item.minRole)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   useEffect(() => {
     const load = () => {
       fetch(`/api/conversations/unread-count?tenant_id=${tenantId}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d) setUnread(d.count ?? 0); })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => {
+          if (data) setUnread(data.count ?? 0);
+        })
         .catch(() => {});
     };
     load();
-    const i = setInterval(load, 20000);
-    return () => clearInterval(i);
+    const interval = setInterval(load, 20_000);
+    return () => clearInterval(interval);
   }, [tenantId]);
 
   return (
-    <aside className="flex h-full w-60 flex-col bg-[var(--color-sidebar,#1e293b)] text-[var(--color-sidebar-text,#cbd5e1)]">
-      {/* Logo / Tenant name */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-        <div className="h-8 w-8 rounded-lg bg-[var(--color-primary,#0ea5e9)] flex items-center justify-center text-white font-bold text-sm">
+    <aside className="flex h-full w-64 flex-col bg-[var(--color-sidebar,#1e293b)] text-[var(--color-sidebar-text,#cbd5e1)]">
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary,#0ea5e9)] text-sm font-bold text-white">
           {tenantName.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white truncate">{tenantName}</p>
-          <p className="text-xs text-slate-400 truncate">{tenantSlug}.{PLATFORM_HOST}</p>
+          <p className="truncate text-sm font-semibold text-white">{tenantName}</p>
+          <p className="truncate text-xs text-slate-400">{tenantSlug}.{PLATFORM_HOST}</p>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-        {visibleItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                isActive
-                  ? "bg-white/10 text-white font-medium"
-                  : "hover:bg-white/5 hover:text-white"
-              )}
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {item.label}
-              {item.href === "/conversas" && unread > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold text-white">
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-              {isActive && !(item.href === "/conversas" && unread > 0) && (
-                <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-2 py-4">
+        {visibleGroups.map((group) => (
+          <div key={group.label} className="mb-5 last:mb-2">
+            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      isActive ? "bg-white/10 font-medium text-white" : "hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                    {item.href === "/conversas" && unread > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold text-white">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    )}
+                    {isActive && !(item.href === "/conversas" && unread > 0) && (
+                      <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* View storefront link */}
       <div className="border-t border-white/10 p-3">
         <a
           href={`https://${tenantSlug}.${PLATFORM_HOST}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-white/5 hover:text-white transition-colors"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-white/5 hover:text-white"
         >
           <Globe className="h-3.5 w-3.5" />
           Ver minha loja

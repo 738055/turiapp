@@ -106,16 +106,16 @@ E configure as envs do deploy:
 NEXT_PUBLIC_PLATFORM_HOST=nitromethanebrasil.com.br
 NEXT_PUBLIC_APP_HOST=app.nitromethanebrasil.com.br
 NEXT_PUBLIC_ADMIN_HOST=admin.nitromethanebrasil.com.br
-# opcional: painel/preview hospedado em outro host
+# opcional: quando o painel for acessado por outro host que precisa emoldurar previews
 PREVIEW_FRAME_HOSTS=turiapp-two.vercel.app,www.nitromethanebrasil.com.br
 ```
 
 Sem o wildcard associado ao projeto, a Vercel retorna `DEPLOYMENT_NOT_FOUND`
 antes da TuriApp receber a request.
 
-O preview real de Aparencia/Paginas usa iframe. O CSP permite abrir lojas da
-plataforma em `frame-src`, mas o storefront so aceita ser emoldurado pelos hosts
-da propria plataforma via `frame-ancestors`. A Vercel URL do proprio deploy
-entra automaticamente quando `VERCEL_URL`/`VERCEL_PROJECT_PRODUCTION_URL`
-estiverem disponiveis; se o painel for acessado por outro host, adicione esse
-host exato em `PREVIEW_FRAME_HOSTS`.
+O preview real de Aparencia/Paginas usa iframe. O CSP permite abrir destinos
+HTTPS em `frame-src` para suportar dominios proprios verificados dos tenants,
+mas o storefront so aceita ser emoldurado pelos hosts da propria plataforma via
+`frame-ancestors`. A Vercel URL do proprio deploy entra automaticamente quando
+`VERCEL_URL`/`VERCEL_PROJECT_PRODUCTION_URL` estiverem disponiveis; se o painel
+for acessado por outro host, adicione esse host exato em `PREVIEW_FRAME_HOSTS`.
