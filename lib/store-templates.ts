@@ -238,6 +238,206 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
     ],
     productDefaults: productDefaults("hospedagem", "resort"),
   },
+  {
+    id: "receptivo-aventura",
+    name: "Aventura Local",
+    category: "receptivo",
+    description: "Modelo vibrante para experiencias de natureza, aventura, trilhas, passeios de barco e atrativos ao ar livre.",
+    source: "references/projetos-base/receptivo - variante aventura",
+    bestFor: ["ecoturismo", "aventura", "passeios de barco", "trilhas guiadas"],
+    theme: {
+      primary_color: "#16a34a",
+      secondary_color: "#14532d",
+      accent_color: "#facc15",
+      background_color: "#f7fee7",
+      text_color: "#132a13",
+      font_heading: fonts.friendly,
+      font_body: fonts.modern,
+      border_radius: "1rem",
+      menu_type: "top-transparent",
+      card_type: "card-image-large",
+    },
+    sections: [
+      hero("Aventuras seguras com equipe local", "Venda trilhas, passeios nauticos, experiencias de natureza e atrativos com detalhes claros de nivel, duracao e inclusos.", "Explorar aventuras", "/busca?modulo=receptivo", "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80", "marketplace", [
+        { value: "local", label: "guias especialistas" },
+        { value: "seguro", label: "orientacoes claras" },
+        { value: "grupo", label: "opcoes privativas" },
+      ]),
+      searchBar("Busque por trilha, barco, cachoeira ou atrativo"),
+      productGrid("Experiencias de aventura", "Cards preparados para nivel de dificuldade, duracao, inclusos e politica de cancelamento.", "receptivo", "marketplace"),
+      banner("Monte roteiros privativos", "Capture pedidos para grupos, empresas e viajantes que querem um roteiro sob medida.", "Pedir roteiro", "/contato", "#14532d"),
+      testimonials([
+        { name: "Bruno Lima", rating: 5, text: "O roteiro ficou claro antes da compra e a equipe passou muita seguranca." },
+        { name: "Julia Prado", rating: 5, text: "Conseguimos comparar passeios e escolher pelo nivel de aventura." },
+        { name: "Grupo Serra", rating: 5, text: "Atendimento rapido para fechar um grupo privativo." },
+      ]),
+      faq([
+        { question: "Posso indicar nivel de dificuldade?", answer: "Sim. Use os campos do produto para destacar duracao, preparo necessario e informacoes importantes." },
+        { question: "Funciona para grupos fechados?", answer: "Sim. O layout tambem favorece cotacoes pelo WhatsApp ou formulario de contato." },
+      ]),
+      contact(),
+      footer("Ecoturismo, aventura e atendimento local com informacoes claras para vender melhor."),
+    ],
+    productDefaults: productDefaults("receptivo", "experiencia", {
+      title: "Trilha guiada com mirante",
+      description: "Experiencia de natureza com guia local, orientacoes de seguranca e pontos de parada para fotos.",
+      extra_data: {
+        duration: "4 horas",
+        location: "Area natural",
+        highlights: ["Guia local", "Nivel moderado", "Paradas para fotos"],
+        included: ["Acompanhamento", "Orientacoes de seguranca", "Seguro operacional"],
+        not_included: ["Alimentacao", "Transporte ate o ponto de encontro"],
+      },
+    }),
+  },
+  {
+    id: "emissivo-premium",
+    name: "Viagens Premium",
+    category: "emissivo",
+    description: "Tema elegante para agencias consultivas, roteiros personalizados, lua de mel e viagens de alto valor.",
+    source: "references/projetos-base/receptivo3 adaptado para emissivo premium",
+    bestFor: ["viagens sob medida", "lua de mel", "alto ticket", "consultoria de viagem"],
+    theme: {
+      primary_color: "#334155",
+      secondary_color: "#111827",
+      accent_color: "#d97706",
+      background_color: "#f8fafc",
+      text_color: "#111827",
+      font_heading: fonts.serif,
+      font_body: fonts.modern,
+      border_radius: "0.25rem",
+      menu_type: "top-classic",
+      card_type: "card-horizontal",
+    },
+    sections: [
+      hero("Roteiros sob medida para viajar melhor", "Apresente pacotes premium, consultoria, condicoes e experiencias exclusivas com uma vitrine editorial e comercial.", "Solicitar consultoria", "/contato", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80", "editorial", [
+        { value: "sob medida", label: "roteiros personalizados" },
+        { value: "curadoria", label: "hoteis e experiencias" },
+        { value: "suporte", label: "antes e durante" },
+      ]),
+      productGrid("Viagens selecionadas", "Produtos podem virar roteiros completos com inclusos, nao inclusos, datas e politica comercial.", "emissivo", "editorial"),
+      about("Consultoria que aumenta valor percebido", "Use este modelo para vender conhecimento, curadoria e atendimento consultivo, nao apenas preco. O tenant edita destinos, argumentos comerciais, provas sociais e CTAs."),
+      testimonials([
+        { name: "Renata Moura", rating: 5, text: "O roteiro parecia uma proposta premium, com tudo bem explicado." },
+        { name: "Casal Andrade", rating: 5, text: "Fechamos a lua de mel com seguranca porque as informacoes estavam claras." },
+        { name: "Luciano Reis", rating: 5, text: "A experiencia passa muito mais autoridade que uma lista simples de pacotes." },
+      ]),
+      banner("Transforme pedidos em propostas", "Leve o cliente para contato consultivo quando a viagem exigir personalizacao.", "Criar cotacao", "/cotacoes/nova", "#111827"),
+      faq(),
+      contact(),
+      footer("Viagens premium, curadoria e atendimento consultivo."),
+    ],
+    productDefaults: productDefaults("emissivo", "viagem", {
+      title: "Roteiro premium para o Caribe",
+      description: "Viagem personalizada com curadoria de hospedagem, experiencias e suporte consultivo.",
+      extra_data: {
+        duration: "7 dias / 6 noites",
+        location: "Caribe",
+        highlights: ["Roteiro sob medida", "Hoteis selecionados", "Experiencias exclusivas"],
+        included: ["Consultoria", "Hospedagem sugerida", "Roteiro detalhado"],
+        not_included: ["Passagens nao descritas", "Despesas pessoais", "Taxas locais"],
+      },
+    }),
+  },
+  {
+    id: "emissivo-cruzeiros",
+    name: "Cruzeiros & Grupos",
+    category: "emissivo",
+    description: "Modelo comercial para cruzeiros, bloqueios, saidas em grupo, excursao e pacotes com parcelas.",
+    source: "references/projetos-base/receptivo2 adaptado para cruzeiros",
+    bestFor: ["cruzeiros", "excursao", "bloqueios", "viagens em grupo"],
+    theme: {
+      primary_color: "#0284c7",
+      secondary_color: "#0c4a6e",
+      accent_color: "#fb923c",
+      background_color: "#f0f9ff",
+      text_color: "#0f172a",
+      font_heading: fonts.friendly,
+      font_body: fonts.sans,
+      border_radius: "0.75rem",
+      menu_type: "top-centered",
+      card_type: "card-price-highlight",
+    },
+    sections: [
+      hero("Cruzeiros e saidas em grupo prontos para vender", "Destaque datas, cabines, roteiro, condicoes de pagamento e atendimento para grupos em uma vitrine objetiva.", "Ver saidas", "/busca?modulo=emissivo", "https://images.unsplash.com/photo-1548574505-5e239809ee19?auto=format&fit=crop&w=1600&q=80", "marketplace", [
+        { value: "12x", label: "pagamento facilitado" },
+        { value: "grupo", label: "bloqueios e saidas" },
+        { value: "cabines", label: "opcoes por perfil" },
+      ]),
+      searchBar("Busque por navio, destino ou data"),
+      productGrid("Saidas em destaque", "Cards pensados para preco, data, roteiro resumido e chamada para cotacao.", "emissivo", "marketplace"),
+      banner("Venda grupos com mais organizacao", "Use paginas de produto para explicar roteiro, inclusos, taxas e documentos necessarios.", "Falar com consultor", "/contato", "#0c4a6e"),
+      faq([
+        { question: "Posso cadastrar cabines ou categorias?", answer: "Sim. Use tarifarios e detalhes do produto para organizar categorias, precos e condicoes." },
+        { question: "Serve para excursao terrestre tambem?", answer: "Sim. O modelo funciona para cruzeiros, saidas rodoviarias, grupos e pacotes programados." },
+      ]),
+      contact(),
+      footer("Cruzeiros, grupos e saidas programadas com venda mais clara."),
+    ],
+    productDefaults: productDefaults("emissivo", "cruzeiro", {
+      title: "Cruzeiro com saida em grupo",
+      description: "Saida programada com roteiro, condicoes de pagamento, categorias e suporte da agencia.",
+      extra_data: {
+        duration: "8 dias / 7 noites",
+        location: "Costa brasileira",
+        highlights: ["Saida em grupo", "Cabines por categoria", "Parcelamento disponivel"],
+        included: ["Cruzeiro conforme roteiro", "Suporte da agencia", "Orientacoes pre-embarque"],
+        not_included: ["Taxas portuarias se nao descritas", "Bebidas", "Passeios opcionais"],
+      },
+    }),
+  },
+  {
+    id: "hospedagem-natureza",
+    name: "Chales & Natureza",
+    category: "hospedagem",
+    description: "Variante aconchegante para chales, pousadas de montanha, glamping e hospedagens romanticas.",
+    source: "references/projetos-base/hospedagem - variante natureza",
+    bestFor: ["chales", "pousadas de montanha", "glamping", "hospedagem romantica"],
+    theme: {
+      primary_color: "#4d7c0f",
+      secondary_color: "#365314",
+      accent_color: "#b45309",
+      background_color: "#fafaf5",
+      text_color: "#263214",
+      font_heading: fonts.serif,
+      font_body: fonts.friendly,
+      border_radius: "1rem",
+      menu_type: "top-transparent",
+      card_type: "card-image-large",
+    },
+    sections: [
+      hero("Chales para desacelerar", "Valorize natureza, conforto, privacidade e experiencias romanticas com um layout acolhedor e visual.", "Ver hospedagens", "/busca?modulo=hospedagem", "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1600&q=80", "editorial", [
+        { value: "natureza", label: "experiencia imersiva" },
+        { value: "casais", label: "clima romantico" },
+        { value: "reserva", label: "atendimento simples" },
+      ]),
+      productGrid("Chales e experiencias", "Mostre capacidade, comodidades, politicas e fotos para facilitar a decisao.", "hospedagem", "editorial"),
+      about("Hospedagem com atmosfera", "Este modelo destaca sensacao, ambiente e detalhes de conforto, ideal para vender desejo antes mesmo do atendimento."),
+      banner("Pacotes romanticos e datas especiais", "Crie chamadas para feriados, aniversarios e experiencias com extras.", "Consultar datas", "/contato", "#365314"),
+      testimonials([
+        { name: "Mariana e Leo", rating: 5, text: "As fotos e descricoes transmitiram exatamente o clima do lugar." },
+        { name: "Paula Souza", rating: 5, text: "Foi facil entender o que estava incluso e pedir disponibilidade." },
+        { name: "Daniel Costa", rating: 5, text: "A pagina ficou elegante e passou muita confianca." },
+      ]),
+      faq(),
+      contact(),
+      footer("Chales, natureza e experiencias de descanso com reserva simples."),
+    ],
+    productDefaults: productDefaults("hospedagem", "pousada", {
+      title: "Chale vista bosque",
+      description: "Chale aconchegante para casal, com clima de natureza, conforto e privacidade.",
+      extra_data: {
+        duration: "Diarias flexiveis",
+        location: "Serra / natureza",
+        highlights: ["Ideal para casais", "Vista para natureza", "Cafe da manha opcional"],
+        included: ["Wi-Fi", "Roupa de cama e banho", "Estacionamento"],
+        not_included: ["Itens de frigobar", "Experiencias opcionais"],
+        capacity: "2 pessoas",
+        bedrooms: "1 quarto",
+        bathrooms: "1 banheiro",
+      },
+    }),
+  },
 ];
 
 export function getStoreTemplate(id: string | null | undefined): StoreTemplate {
@@ -472,13 +672,17 @@ function footer(description = "Turismo com qualidade, tecnologia e atendimento h
   return { type: "footer", visible: true, config: { company_name: "", description } };
 }
 
-function productDefaults(module: StoreTemplateProductDefaults["module"], type: string): StoreTemplateProductDefaults {
+function productDefaults(
+  module: StoreTemplateProductDefaults["module"],
+  type: string,
+  overrides: Partial<StoreTemplateProductDefaults> = {}
+): StoreTemplateProductDefaults {
   const isHospedagem = module === "hospedagem";
   const isEmissivo = module === "emissivo";
-  return {
+  const base: StoreTemplateProductDefaults = {
     module,
     type,
-      title: isHospedagem ? "Suite vista jardim" : isEmissivo ? "Pacote completo para Gramado" : "Cataratas com transfer",
+    title: isHospedagem ? "Suite vista jardim" : isEmissivo ? "Pacote completo para Gramado" : "Cataratas com transfer",
     description: isHospedagem
       ? "Acomodacao confortavel com cafe da manha, boa localizacao e atendimento proximo."
       : isEmissivo
@@ -521,6 +725,15 @@ function productDefaults(module: StoreTemplateProductDefaults["module"], type: s
       capacity: isHospedagem ? "2 pessoas" : undefined,
       bedrooms: isHospedagem ? "1 quarto" : undefined,
       bathrooms: isHospedagem ? "1 banheiro" : undefined,
+    },
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    extra_data: {
+      ...base.extra_data,
+      ...(overrides.extra_data ?? {}),
     },
   };
 }
