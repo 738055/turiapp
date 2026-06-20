@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
 import { writeAuditLog, getClientIp } from "@/lib/audit";
+import { proFeatureError, tenantHasProFeature } from "@/lib/plans/pro-features";
 
 // Turn a conversation contact into a CRM record. Customers and leads both require
 // an email (schema), which a WhatsApp contact doesn't have — so the agent fills
@@ -36,6 +37,10 @@ export async function POST(req: NextRequest) {
     .single();
   if (!membership || !roleAtLeast(membership.role, "tenant_staff")) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (!(await tenantHasProFeature(service, tenant_id))) {
+    return NextResponse.json({ error: proFeatureError("crm") }, { status: 403 });
   }
 
   const { data: conversation } = await service

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AutomationPresets } from "@/components/admin/AutomationPresets";
 import { AutomationsList } from "@/components/admin/AutomationsList";
+import { getPlanTier } from "@/lib/plans/limits";
 import type { Automation } from "@/types";
 
 export default async function AutomacoesPage() {
@@ -24,6 +25,7 @@ export default async function AutomacoesPage() {
 
   const items = (automations ?? []) as Automation[];
   const activeNames = items.map((a) => a.name);
+  const planTier = await getPlanTier(createServiceClient(), membership!.tenant_id);
 
   return (
     <div className="space-y-6">
@@ -44,12 +46,12 @@ export default async function AutomacoesPage() {
 
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Modelos prontos</h2>
-        <AutomationPresets tenantId={membership!.tenant_id} activePresetNames={activeNames} />
+        <AutomationPresets tenantId={membership!.tenant_id} activePresetNames={activeNames} planTier={planTier} />
       </div>
 
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Suas automações</h2>
-        <AutomationsList automations={items} />
+        <AutomationsList automations={items} planTier={planTier} />
       </div>
     </div>
   );

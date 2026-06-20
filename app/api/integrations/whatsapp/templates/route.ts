@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
 import { decrypt } from "@/lib/crypto";
 import { listWhatsAppTemplates } from "@/lib/whatsapp/360dialog";
+import { proFeatureError, tenantHasProFeature } from "@/lib/plans/pro-features";
 
 // Lista os templates aprovados na conta 360dialog do tenant (puxados ao vivo).
 export async function GET(req: NextRequest) {
@@ -24,6 +25,10 @@ export async function GET(req: NextRequest) {
     .single();
   if (!membership || !roleAtLeast(membership.role, "tenant_staff")) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (!(await tenantHasProFeature(service, tenantId))) {
+    return NextResponse.json({ error: proFeatureError("support"), templates: [], connected: false }, { status: 403 });
   }
 
   const { data: integrations } = await service

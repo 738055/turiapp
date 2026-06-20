@@ -6,13 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check } from "lucide-react";
 import { AUTOMATION_PRESETS } from "@/lib/automations/templates";
+import { automationActionAllowed, automationActionRequiresPro } from "@/lib/automations/access";
+import type { PlanTier } from "@/types";
 
 interface AutomationPresetsProps {
   tenantId: string;
   activePresetNames: string[];
+  planTier: PlanTier | null;
 }
 
-export function AutomationPresets({ tenantId, activePresetNames }: AutomationPresetsProps) {
+export function AutomationPresets({ tenantId, activePresetNames, planTier }: AutomationPresetsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activatingKey, setActivatingKey] = useState<string | null>(null);
@@ -45,6 +48,7 @@ export function AutomationPresets({ tenantId, activePresetNames }: AutomationPre
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {AUTOMATION_PRESETS.map((preset) => {
         const alreadyActive = activePresetNames.includes(preset.name);
+        const allowed = automationActionAllowed(preset.action_type, planTier);
         return (
           <Card key={preset.key}>
             <CardContent className="p-4 space-y-3">
@@ -53,14 +57,21 @@ export function AutomationPresets({ tenantId, activePresetNames }: AutomationPre
                 <p className="font-medium text-gray-900 text-sm">{preset.name}</p>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed">{preset.description}</p>
+              {automationActionRequiresPro(preset.action_type) && (
+                <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  Pro/Enterprise
+                </span>
+              )}
               <Button
                 size="sm"
                 variant={alreadyActive ? "outline" : "default"}
                 className="w-full"
-                disabled={isPending && activatingKey === preset.key}
+                disabled={!allowed || (isPending && activatingKey === preset.key)}
                 onClick={() => handleActivate(preset.key)}
               >
-                {alreadyActive ? (
+                {!allowed ? (
+                  "Disponivel no Pro"
+                ) : alreadyActive ? (
                   <>
                     <Check className="h-4 w-4 mr-1" /> Adicionar novamente
                   </>

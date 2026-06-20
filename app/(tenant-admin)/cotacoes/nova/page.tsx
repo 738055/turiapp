@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { QuoteForm } from "@/components/admin/QuoteForm";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 export default async function NovaCotacaoPage({
   searchParams,
@@ -15,6 +18,17 @@ export default async function NovaCotacaoPage({
     .select("tenant_id")
     .eq("user_id", user!.id)
     .single();
+
+  const planTier = await getPlanTier(createServiceClient(), membership!.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="Cotacoes profissionais"
+        description="Criar propostas, calcular valores e enviar links de aceite e um recurso dos planos Pro e Enterprise."
+      />
+    );
+  }
 
   const [{ data: leads }, { data: products }] = await Promise.all([
     supabase

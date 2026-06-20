@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerLgpdActions } from "@/components/admin/CustomerLgpdActions";
 import { CustomerNotesEditor } from "@/components/admin/CustomerNotesEditor";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 import {
   computeTier,
   computeSegment,
@@ -56,6 +59,16 @@ export default async function CustomerDetailPage({ params }: PageProps) {
 
   const tenantId = membership!.tenant_id;
   const service = createServiceClient();
+  const planTier = await getPlanTier(service, tenantId);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="Historico 360 do cliente"
+        description="O perfil completo com reservas, leads, cotacoes, notas internas e segmentacao e um recurso dos planos Pro e Enterprise."
+      />
+    );
+  }
 
   const [{ data: customer }, { data: bookings }, { data: settingsRow }] = await Promise.all([
     supabase

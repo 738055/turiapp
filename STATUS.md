@@ -22,6 +22,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Plataforma:** rate limit distribuído (Upstash), circuit breaker WhatsApp, observabilidade/Sentry, cache de storefront, índices (28); **PWA instalável + Web Push** (20); **iCal export/import** com OTAs (25)
 - **Atendimento WhatsApp:** chat agora envia e renderiza mídia dentro da janela de 24h: imagem, áudio, vídeo e documentos, com `media_url` em `messages` e upload no bucket `media`
 - **Gating de planos:** limites de plano (`booking_engine`/`custom_domain`/`pixel_integrations`) agora **realmente aplicados** no backend + UI de upsell — antes só contagem de produtos/usuários era enforçada (furo de monetização fechado)
+- **Gating de acoes de automacao:** `internal_notification` fica disponivel no Basico; acoes de envio externo e CRM (`send_email`, `send_whatsapp`, `move_lead_status`) exigem Pro/Enterprise, com bloqueio na UI, no endpoint de salvar/reativar e no cron para evitar execucao apos downgrade
 - **Revisão geral + correções:** 2 bugs de constraint corrigidos (`ssl_status` e `subscription_status` — ambos travariam produção); fluxo de domínio próprio aprimorado (A+CNAME sempre, 3 estados, DNS persistido)
 - **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve apenas a raiz `/` para a rota interna `/storefront` e mantém `/busca`, `/produto/...` etc no roteamento público normal; painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
 - **Storefront por modelos reais:** templates agora criam loja completa editavel (home, sobre, FAQ, contato, termos, privacidade e menu/header publico), e cards, busca e pagina de produto reutilizam os estilos dos projetos em `references/projetos-base/` (marketplace/receptivo e editorial/hospedagem), com galeria, inclusos, nao-inclusos, roteiro, politica, tarifas e placeholders visuais profissionais alimentados pelo CRUD do tenant
@@ -31,6 +32,8 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **UX do painel tenant:** menu lateral reorganizado por contexto (Visao geral, Loja e aparencia, CRM e vendas, Canais e ajustes); PageBuilder agora separa estrutura, edicao da secao e preview instantaneo/publicado para reduzir confusao na criacao de paginas
 - **Footer profissional editavel:** rodape agora aceita estilo escuro/claro/marca, links uteis, telefone, WhatsApp, e-mail, endereco, horario, texto legal/CNPJ e redes sociais (Instagram, Facebook, TikTok, YouTube e LinkedIn), tudo por campos guiados no PageBuilder
 - **Busca publica mais limpa:** `/busca` monta o filtro de modulo apenas com categorias que possuem produtos publicados no tenant; se a loja nao tem hospedagem, hospedagem nao aparece no select
+- **CRM e Atendimento como recurso Pro:** trial/Basico veem preview bloqueado de Leads, Clientes, Cotacoes, Configuracoes de CRM, Atendimento e WhatsApp Business; mutacoes dessas areas sao negadas no backend ate upgrade para Pro/Enterprise
+- **Landing comercial recriada:** pagina inicial publica foi refeita com narrativa especifica de turismo, imagem real, modulos receptivo/emissivo/hospedagem, planos com diferencas claras e posicionamento Pro/Enterprise para CRM/Atendimento
 
 ---
 
@@ -234,7 +237,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 
 ### Automações por gatilho (Etapa 32)
 - Migration `008_automations.sql`: tabelas `automations`, `automation_runs`, `notifications`
-- Painel `/automacoes`, `/automacoes/nova`, `/automacoes/[automationId]` — regras 100% configuráveis pelo tenant (gatilho → delay → ação), presets apenas pré-preenchem o formulário (`lib/automations/templates.ts`, `lib/automations/render.ts`)
+- Painel `/automacoes`, `/automacoes/nova`, `/automacoes/[automationId]` — regras configuráveis pelo tenant (gatilho → delay → ação), presets apenas pré-preenchem o formulário (`lib/automations/templates.ts`, `lib/automations/render.ts`); ações internas são padrão e ações de envio externo são Pro/Enterprise com validação também no backend/cron
 - Gatilhos: reserva confirmada, check-in em X dias, check-out há X dias, cliente inativo há X dias, lead sem resposta, cotação expirando
 - Ações: enviar email, enviar WhatsApp, notificação interna, mover lead de status
 - Worker `GET /api/cron/automations` (Vercel Cron) processa a fila `automation_runs` com idempotência (`unique(automation_id, entity_type, entity_id)`)

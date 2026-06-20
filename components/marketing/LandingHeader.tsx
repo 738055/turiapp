@@ -33,7 +33,7 @@ export function LandingHeader() {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 text-white shadow-lg shadow-sky-500/30">
             <MapPin className="h-5 w-5" />
           </span>
-          <span className="text-lg font-bold tracking-tight text-gray-900">TuriApp</span>
+          <span className="text-lg font-bold text-gray-900">TuriApp</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

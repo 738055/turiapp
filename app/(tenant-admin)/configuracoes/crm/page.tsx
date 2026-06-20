@@ -1,6 +1,9 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CrmSettingsForm } from "@/components/admin/CrmSettingsForm";
 import { DEFAULT_CRM_SETTINGS } from "@/lib/crm/segmentation";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 export default async function CrmSettingsPage() {
   const supabase = await createClient();
@@ -13,6 +16,17 @@ export default async function CrmSettingsPage() {
     .single();
 
   const service = createServiceClient();
+  const planTier = await getPlanTier(service, membership!.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="Segmentacao e pontuacao de clientes"
+        description="No trial voce conhece a configuracao de CRM, mas ajustar faixas, segmentos e regras comerciais fica disponivel apenas nos planos Pro e Enterprise."
+      />
+    );
+  }
+
   const { data: settings } = await service
     .from("crm_settings")
     .select("*")

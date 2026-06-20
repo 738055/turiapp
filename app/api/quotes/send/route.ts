@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail, renderQuoteEmailHtml } from "@/lib/email/resend";
 import { writeAuditLog, getClientIp } from "@/lib/audit";
+import { proFeatureError, tenantHasProFeature } from "@/lib/plans/pro-features";
 
 const schema = z.object({
   quote_id: z.string().uuid(),
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
 
   if (!membership || !["tenant_staff", "tenant_admin", "tenant_owner"].includes(membership.role)) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (!(await tenantHasProFeature(service, quote.tenant_id))) {
+    return NextResponse.json({ error: proFeatureError("crm") }, { status: 403 });
   }
 
   const [{ data: lead }, { data: product }, { data: tenant }, { data: theme }] = await Promise.all([

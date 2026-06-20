@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
+import { proFeatureError, tenantHasProFeature } from "@/lib/plans/pro-features";
 
 const schema = z.object({
   tenant_id: z.string().uuid(),
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
     .single();
   if (!membership || !roleAtLeast(membership.role, "tenant_staff")) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (!(await tenantHasProFeature(service, tenant_id))) {
+    return NextResponse.json({ error: proFeatureError("support") }, { status: 403 });
   }
 
   // Conversation must belong to the tenant.

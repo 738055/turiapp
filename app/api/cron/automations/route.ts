@@ -17,6 +17,8 @@ import { sendWhatsAppTemplate, normalizePhone } from "@/lib/whatsapp/360dialog";
 import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
 import { checkWhatsAppCircuit, tripWhatsAppCircuit } from "@/lib/whatsapp/circuit-breaker";
 import { writeAuditLog } from "@/lib/audit";
+import { getPlanTier } from "@/lib/plans/limits";
+import { automationActionAllowed, automationActionGateMessage } from "@/lib/automations/access";
 import type { Automation, AutomationEntityType } from "@/types";
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
@@ -70,6 +72,9 @@ export async function GET(req: NextRequest) {
 }
 
 async function discoverRuns(service: ServiceClient, automation: Automation): Promise<number> {
+  const planTier = await getPlanTier(service, automation.tenant_id);
+  if (!automationActionAllowed(automation.action_type, planTier)) return 0;
+
   const entityIds = await findMatchingEntities(service, automation);
   if (!entityIds.length) return 0;
 
@@ -286,6 +291,12 @@ async function executeRun(service: ServiceClient, run: RunRow): Promise<"execute
   const automation = run.automations;
 
   try {
+    const planTier = await getPlanTier(service, automation.tenant_id);
+    if (!automationActionAllowed(automation.action_type, planTier)) {
+      await markRun(service, run.id, "skipped", automationActionGateMessage(automation.action_type) ?? "Acao nao incluida no plano.");
+      return "skipped";
+    }
+
     const vars = await buildVars(service, run.entity_type, run.entity_id);
     if (!vars) {
       await markRun(service, run.id, "skipped", "Entidade não encontrada (pode ter sido removida).");

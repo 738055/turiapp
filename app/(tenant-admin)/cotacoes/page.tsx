@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { FileText, Plus } from "lucide-react";
 import { QuoteActions } from "@/components/admin/QuoteActions";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 const STATUS_LABEL: Record<string, { label: string; variant: "secondary" | "success" | "destructive" | "warning" }> = {
   pending: { label: "Aguardando resposta", variant: "warning" },
@@ -22,6 +25,17 @@ export default async function CotacoesPage() {
     .single();
 
   const tenantSlug = (membership?.tenants as unknown as { slug: string } | null)?.slug ?? "";
+  const service = createServiceClient();
+  const planTier = await getPlanTier(service, membership!.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="Cotacoes profissionais"
+        description="No trial voce ve o fluxo comercial, mas criar propostas, enviar links de aceite e acompanhar resposta do lead fica liberado apenas nos planos Pro e Enterprise."
+      />
+    );
+  }
 
   const { data: quotes } = await supabase
     .from("quotes")

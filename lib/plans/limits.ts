@@ -1,4 +1,5 @@
 import type { createServiceClient } from "@/lib/supabase/server";
+import type { PlanTier } from "@/types";
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -26,6 +27,17 @@ export async function getPlanLimits(service: Service, tenantId: string): Promise
     .maybeSingle();
   if (!data?.plan_id) return null;
   return (data.plans as unknown as { limits?: PlanLimits } | null)?.limits ?? null;
+}
+
+export async function getPlanTier(service: Service, tenantId: string): Promise<PlanTier | null> {
+  const { data } = await service
+    .from("tenants")
+    .select("plan_id, plans(tier)")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (!data?.plan_id) return null;
+  const tier = (data.plans as unknown as { tier?: string } | null)?.tier;
+  return tier === "basico" || tier === "pro" || tier === "premium" ? tier : null;
 }
 
 /** A boolean feature is allowed during the trial (no plan) or when the plan

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog, getClientIp } from "@/lib/audit";
+import { getPlanTier } from "@/lib/plans/limits";
+import { automationActionAllowed, automationActionGateMessage } from "@/lib/automations/access";
 
 const schema = z.object({
   automation_id: z.string().uuid(),
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
   const { automation_id, active } = parsed.data;
   const service = createServiceClient();
 
-  const { data: automation } = await service.from("automations").select("tenant_id").eq("id", automation_id).single();
+  const { data: automation } = await service.from("automations").select("tenant_id, action_type").eq("id", automation_id).single();
   if (!automation) return NextResponse.json({ error: "Automação não encontrada." }, { status: 404 });
 
   const { data: membership } = await service
@@ -36,6 +38,16 @@ export async function POST(req: NextRequest) {
 
   if (!membership || !["tenant_admin", "tenant_owner"].includes(membership.role)) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (active) {
+    const planTier = await getPlanTier(service, automation.tenant_id);
+    if (!automationActionAllowed(automation.action_type, planTier)) {
+      return NextResponse.json(
+        { error: automationActionGateMessage(automation.action_type) ?? "Esta acao nao esta incluida no seu plano." },
+        { status: 403 }
+      );
+    }
   }
 
   const { error } = await service.from("automations").update({ active }).eq("id", automation_id);

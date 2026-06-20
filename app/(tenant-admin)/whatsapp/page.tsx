@@ -1,9 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
 import { CopyField } from "@/components/admin/CopyField";
 import { whatsappWebhookToken } from "@/lib/whatsapp/webhook-auth";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 export default async function WhatsAppPage() {
   const supabase = await createClient();
@@ -16,6 +19,18 @@ export default async function WhatsAppPage() {
     .single();
 
   const slug = (membership?.tenants as unknown as { slug: string } | null)?.slug ?? "";
+  const service = createServiceClient();
+  const planTier = await getPlanTier(service, membership!.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="support"
+        title="WhatsApp Business e atendimento"
+        description="No trial e no Basico voce pode ver como a central funciona, mas conectar credenciais, receber mensagens no painel e operar respostas fica liberado nos planos Pro e Enterprise."
+      />
+    );
+  }
+
   const appHost = process.env.NEXT_PUBLIC_APP_HOST ?? `app.${process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br"}`;
   const webhookUrl = `https://${appHost}/api/webhooks/whatsapp?tenant=${slug}&token=${whatsappWebhookToken(membership!.tenant_id)}`;
 

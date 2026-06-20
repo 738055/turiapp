@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { writeAuditLog, getClientIp } from "@/lib/audit";
+import { getPlanTier } from "@/lib/plans/limits";
+import { automationActionAllowed, automationActionGateMessage } from "@/lib/automations/access";
 
 const triggerTypes = [
   "booking_confirmed",
@@ -53,6 +55,14 @@ export async function POST(req: NextRequest) {
 
   if (!membership || !["tenant_admin", "tenant_owner"].includes(membership.role)) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  const planTier = await getPlanTier(service, tenant_id);
+  if (!automationActionAllowed(action_type, planTier)) {
+    return NextResponse.json(
+      { error: automationActionGateMessage(action_type) ?? "Esta acao nao esta incluida no seu plano." },
+      { status: 403 }
+    );
   }
 
   const row = {

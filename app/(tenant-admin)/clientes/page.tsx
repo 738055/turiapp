@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, ChevronRight } from "lucide-react";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 import {
   computeTier,
   computeSegment,
@@ -46,6 +49,16 @@ export default async function ClientesPage({
 
   const tenantId = membership!.tenant_id;
   const service = createServiceClient();
+  const planTier = await getPlanTier(service, tenantId);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="Clientes e segmentacao"
+        description="No trial voce consegue conhecer a area de clientes, mas filtros, historico comercial, tags e segmentacao automatica ficam disponiveis apenas nos planos Pro e Enterprise."
+      />
+    );
+  }
 
   let customersQuery = supabase
     .from("customers")

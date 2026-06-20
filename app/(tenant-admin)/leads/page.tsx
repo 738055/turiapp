@@ -1,6 +1,9 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { LeadsKanban } from "@/components/admin/LeadsKanban";
 import { normalizePhone } from "@/lib/whatsapp/360dialog";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 export default async function LeadsPage() {
   const supabase = await createClient();
@@ -12,6 +15,18 @@ export default async function LeadsPage() {
     .eq("user_id", user!.id)
     .single();
 
+  const service = createServiceClient();
+  const planTier = await getPlanTier(service, membership!.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="crm"
+        title="CRM comercial"
+        description="Leads, pipeline, conversao para cliente e cotacoes ficam visiveis como preview no trial, mas a operacao do CRM e liberada apenas nos planos Pro e Enterprise."
+      />
+    );
+  }
+
   const [{ data: leads }, { data: convs }] = await Promise.all([
     supabase
       .from("leads")
@@ -19,7 +34,7 @@ export default async function LeadsPage() {
       .eq("tenant_id", membership!.tenant_id)
       .order("created_at", { ascending: false })
       .limit(300),
-    createServiceClient()
+    service
       .from("conversations")
       .select("id, lead_id, phone")
       .eq("tenant_id", membership!.tenant_id),

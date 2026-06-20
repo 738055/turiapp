@@ -10,6 +10,7 @@ import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
 import { recordOutboundMessage } from "@/lib/conversations/store";
 import { checkWhatsAppCircuit, tripWhatsAppCircuit } from "@/lib/whatsapp/circuit-breaker";
 import { writeAuditLog, getClientIp } from "@/lib/audit";
+import { proFeatureError, tenantHasProFeature } from "@/lib/plans/pro-features";
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -48,6 +49,10 @@ export async function POST(req: NextRequest) {
     .single();
   if (!membership || !roleAtLeast(membership.role, "tenant_staff")) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+  }
+
+  if (!(await tenantHasProFeature(service, tenant_id))) {
+    return NextResponse.json({ error: proFeatureError("support") }, { status: 403 });
   }
 
   const { data: conversation } = await service

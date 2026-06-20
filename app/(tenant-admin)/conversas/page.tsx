@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { ChatInbox } from "@/components/admin/ChatInbox";
 import { getWhatsAppTemplate } from "@/lib/whatsapp/templates";
+import { getPlanTier } from "@/lib/plans/limits";
+import { proFeatureAllowed } from "@/lib/plans/pro-features";
+import { ProFeatureGate } from "@/components/admin/ProFeatureGate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,17 @@ export default async function ConversasPage({ searchParams }: { searchParams: Pr
     .eq("user_id", user.id)
     .single();
   if (!membership) redirect("/login");
+
+  const planTier = await getPlanTier(service, membership.tenant_id);
+  if (!proFeatureAllowed(planTier)) {
+    return (
+      <ProFeatureGate
+        kind="support"
+        title="Atendimento profissional"
+        description="No trial e no Basico voce consegue conhecer o recurso, mas a caixa de entrada WhatsApp, atribuicao de atendente, notas e respostas ficam liberadas apenas nos planos Pro e Enterprise."
+      />
+    );
+  }
 
   const { data: integrations } = await service
     .from("tenant_integrations")

@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Pause, Play } from "lucide-react";
 import { TRIGGER_LABEL, ACTION_LABEL } from "@/lib/automations/templates";
-import type { Automation } from "@/types";
+import { automationActionAllowed, automationActionRequiresPro } from "@/lib/automations/access";
+import type { Automation, PlanTier } from "@/types";
 
 interface AutomationsListProps {
   automations: Automation[];
+  planTier: PlanTier | null;
 }
 
-export function AutomationsList({ automations }: AutomationsListProps) {
+export function AutomationsList({ automations, planTier }: AutomationsListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -56,7 +58,10 @@ export function AutomationsList({ automations }: AutomationsListProps) {
 
   return (
     <div className="space-y-3">
-      {automations.map((automation) => (
+      {automations.map((automation) => {
+        const actionAllowed = automationActionAllowed(automation.action_type, planTier);
+        const canToggle = automation.active || actionAllowed;
+        return (
         <Card key={automation.id}>
           <CardContent className="flex items-center justify-between py-4">
             <div className="space-y-1">
@@ -65,6 +70,11 @@ export function AutomationsList({ automations }: AutomationsListProps) {
                 <Badge variant={automation.active ? "success" : "secondary"}>
                   {automation.active ? "Ativa" : "Pausada"}
                 </Badge>
+                {automationActionRequiresPro(automation.action_type) && (
+                  <Badge variant={actionAllowed ? "secondary" : "destructive"}>
+                    {actionAllowed ? "Pro/Enterprise" : "Bloqueada pelo plano"}
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-gray-500">
                 {TRIGGER_LABEL[automation.trigger_type]} → {ACTION_LABEL[automation.action_type]}
@@ -75,7 +85,7 @@ export function AutomationsList({ automations }: AutomationsListProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={isPending && busyId === automation.id}
+                disabled={!canToggle || (isPending && busyId === automation.id)}
                 onClick={() => handleToggle(automation)}
                 title={automation.active ? "Pausar" : "Ativar"}
               >
@@ -100,7 +110,8 @@ export function AutomationsList({ automations }: AutomationsListProps) {
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

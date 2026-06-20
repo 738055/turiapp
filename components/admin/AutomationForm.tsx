@@ -16,12 +16,14 @@ import {
   type MoveLeadActionConfig,
   type WhatsAppActionConfig,
 } from "@/lib/automations/templates";
+import { automationActionAllowed, automationActionGateMessage, automationActionRequiresPro } from "@/lib/automations/access";
 import { WHATSAPP_TEMPLATES } from "@/lib/whatsapp/templates";
-import type { Automation, TriggerType, ActionType } from "@/types";
+import type { Automation, TriggerType, ActionType, PlanTier } from "@/types";
 
 interface AutomationFormProps {
   tenantId: string;
   automation?: Automation;
+  planTier: PlanTier | null;
 }
 
 const TRIGGER_OPTIONS = Object.keys(TRIGGER_LABEL) as TriggerType[];
@@ -34,7 +36,7 @@ const LEAD_STATUS_OPTIONS = [
   { value: "perdido", label: "Perdido" },
 ] as const;
 
-export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
+export function AutomationForm({ tenantId, automation, planTier }: AutomationFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -47,11 +49,14 @@ export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
 
   const initialTriggerKey = automation ? TRIGGER_NUMBER_FIELD[automation.trigger_type]?.key : undefined;
 
+  const initialActionType = (automation?.action_type ??
+    (automationActionAllowed("send_email", planTier) ? "send_email" : "internal_notification")) as ActionType;
+
   const [form, setForm] = useState({
     name: automation?.name ?? "",
     trigger_type: (automation?.trigger_type ?? "booking_confirmed") as TriggerType,
     trigger_number: initialTriggerKey ? String(triggerCfg[initialTriggerKey] ?? "") : "",
-    action_type: (automation?.action_type ?? "send_email") as ActionType,
+    action_type: initialActionType,
     delay_hours: automation?.delay_hours ?? 0,
     active: automation?.active ?? true,
     email_subject: emailCfg.subject ?? "",
@@ -70,6 +75,7 @@ export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
   }
 
   const numberField = TRIGGER_NUMBER_FIELD[form.trigger_type];
+  const selectedActionAllowed = automationActionAllowed(form.action_type, planTier);
 
   function buildActionConfig(): Record<string, unknown> {
     switch (form.action_type) {
@@ -96,6 +102,11 @@ export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
     setError(null);
     if (!form.name.trim()) {
       setError("Dê um nome para a automação.");
+      return;
+    }
+
+    if (!selectedActionAllowed) {
+      setError(automationActionGateMessage(form.action_type) ?? "Esta acao nao esta incluida no seu plano.");
       return;
     }
 
@@ -190,9 +201,14 @@ export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
               className="w-full rounded border border-gray-200 px-3 py-2 text-sm"
             >
               {ACTION_OPTIONS.map((a) => (
-                <option key={a} value={a}>{ACTION_LABEL[a]}</option>
+                <option key={a} value={a} disabled={!automationActionAllowed(a, planTier)}>
+                  {ACTION_LABEL[a]}{automationActionRequiresPro(a) ? " - Pro/Enterprise" : ""}
+                </option>
               ))}
             </select>
+            {!selectedActionAllowed && (
+              <p className="text-xs text-amber-600">{automationActionGateMessage(form.action_type)}</p>
+            )}
           </div>
 
           {form.action_type === "send_email" && (
@@ -300,7 +316,7 @@ export function AutomationForm({ tenantId, automation }: AutomationFormProps) {
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => router.push("/automacoes")}>Cancelar</Button>
-        <Button onClick={handleSave} disabled={isPending}>
+        <Button onClick={handleSave} disabled={isPending || !selectedActionAllowed}>
           <Save className="h-4 w-4 mr-1" />
           {isPending ? "Salvando..." : "Salvar automação"}
         </Button>
