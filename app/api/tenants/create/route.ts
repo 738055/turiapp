@@ -7,6 +7,7 @@ import { createStripeCustomer } from "@/lib/stripe";
 import { slugify } from "@/lib/utils";
 import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/audit";
+import { getStoreTemplate } from "@/lib/store-templates";
 
 const schema = z.object({
   company_name: z.string().min(2).max(100),
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   const d = parsed.data;
+  const selectedTemplate = getStoreTemplate(d.template);
 
   // Check slug availability
   const { data: existing } = await serviceClient
@@ -104,6 +106,7 @@ export async function POST(req: NextRequest) {
   // Create default theme
   await serviceClient.from("themes").insert({
     tenant_id: tenant.id,
+    ...selectedTemplate.theme,
     primary_color: d.primary_color,
     secondary_color: d.secondary_color,
     accent_color: d.accent_color,
@@ -130,7 +133,7 @@ export async function POST(req: NextRequest) {
 
   // Add default sections for the template
   if (page) {
-    const sections = buildDefaultSections(d.template, d.company_name, d.whatsapp_number);
+    const sections = buildTemplateSections(selectedTemplate.sections, d.company_name, d.whatsapp_number);
     await serviceClient.from("page_sections").insert(
       sections.map((s, i) => ({ ...s, page_id: page.id, order: i }))
     );
@@ -143,17 +146,24 @@ export async function POST(req: NextRequest) {
     { tenant_id: tenant.id, label: "Contato", href: "/contato", order: 2 },
   ]);
 
-  // Create first product if provided
-  if (d.product_title && d.product_module) {
+  // Create a first editable product. If the tenant leaves it blank, use the
+  // selected template's sample so the storefront does not start empty.
+  const productDefaults = selectedTemplate.productDefaults;
+  const productTitle = d.product_title?.trim() || productDefaults.title;
+  const productModule = d.product_module || productDefaults.module;
+  const productType = d.product_type || productDefaults.type;
+  if (productTitle && productModule) {
     await serviceClient.from("products").insert({
       tenant_id: tenant.id,
-      module: d.product_module,
-      type: d.product_type ?? "experiencia",
-      title: d.product_title,
-      slug: slugify(d.product_title),
+      module: productModule,
+      type: productType,
+      title: productTitle,
+      slug: slugify(productTitle),
+      description: d.product_title?.trim() ? "" : productDefaults.description,
       status: "published",
       sale_mode: d.sale_mode,
       whatsapp_number: d.whatsapp_number ?? null,
+      extra_data: productDefaults.extra_data,
     });
   }
 
@@ -200,52 +210,21 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ tenantId: tenant.id, slug: tenant.slug });
 }
 
-function buildDefaultSections(
-  _template: string,
+function buildTemplateSections(
+  sections: Array<{ type: string; visible: boolean; config: Record<string, unknown> }>,
   companyName: string,
   whatsapp?: string
 ): Array<{ type: string; visible: boolean; config: Record<string, unknown> }> {
-  const base: Array<{ type: string; visible: boolean; config: Record<string, unknown> }> = [
-    {
-      type: "hero",
-      visible: true,
-      config: {
-        title: `Bem-vindo à ${companyName}`,
-        subtitle: "Experiências únicas para você e sua família",
-        cta_label: "Ver nossos produtos",
-        cta_href: "/busca",
-        height: "md",
-        align: "center",
-      },
-    },
-    {
-      type: "product-grid",
-      visible: true,
-      config: {
-        title: "Nossos produtos",
-        subtitle: "Escolha sua próxima aventura",
-        columns: 3,
-        limit: 6,
-      },
-    },
-  ];
-
-  if (whatsapp) {
-    base.push({
-      type: "contact",
-      visible: true,
-      config: {
-        title: "Fale conosco",
-        whatsapp_number: whatsapp,
-      },
-    });
-  }
-
-  base.push({
-    type: "footer",
-    visible: true,
-    config: { company_name: companyName, description: "Turismo com qualidade e cuidado." },
+  return sections.map((section) => {
+    const config = JSON.parse(JSON.stringify(section.config ?? {})) as Record<string, unknown>;
+    if (section.type === "hero" && typeof config.title === "string") {
+      config.title = config.title.replace("{{company_name}}", companyName);
+    }
+    if (section.type === "contact") {
+      config.whatsapp = whatsapp ?? config.whatsapp ?? "";
+      config.whatsapp_number = whatsapp ?? config.whatsapp_number ?? "";
+    }
+    if (section.type === "footer") config.company_name = companyName;
+    return { ...section, config };
   });
-
-  return base;
 }

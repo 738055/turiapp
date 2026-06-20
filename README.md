@@ -55,6 +55,26 @@ A central em `/conversas` suporta:
 Migrations relacionadas: `023_conversations.sql`, `024_conversation_crm.sql`,
 `025_realtime.sql` e `026_message_media.sql`.
 
+## Modelos De Loja
+
+Projetos prontos usados como referencia visual devem ficar em:
+
+```txt
+references/projetos-base/
+```
+
+Essa pasta nao entra no build nem no typecheck. A TuriApp extrai deles modelos
+nativos em `lib/store-templates.ts`. No onboarding, o tenant escolhe um modelo,
+ve preview em tempo real e recebe uma copia editavel de:
+
+- tema visual;
+- secoes da home;
+- primeiro produto com campos ricos;
+- layout de cards e hero.
+
+O produto usa `extra_data` para alimentar o design com informacoes como duracao,
+local, destaques, inclui, nao inclui, roteiro e informacoes importantes.
+
 ## Deploy
 
 Use `GO-LIVE.md` como runbook de producao. O `STATUS.md` e a fonte rapida do

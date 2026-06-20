@@ -168,13 +168,14 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Verificação de e-mail** pós-cadastro com reenvio (`/verificar-email`)
 - **MFA/TOTP** (Etapa 17) — obrigatório para super admin, opcional (mas enforçado uma vez ativado) para tenants; 10 códigos de backup de uso único como recuperação
 - Guard de onboarding: usuário já vinculado a um tenant não consegue reabrir o wizard
-- **Wizard de 6 passos** com preview ao vivo das cores durante a configuração visual
-- Criação automática de: tenant, tema, página home com seções, nav items, primeiro produto, subdomínio e registro Stripe Customer
+- **Wizard de 6 passos** com preview ao vivo das cores e do modelo de loja escolhido
+- Criação automática de: tenant, tema derivado do modelo, página home com seções editáveis, nav items, primeiro produto com conteúdo rico, subdomínio e registro Stripe Customer
 - Checklist de setup persistente no dashboard (passos concluídos vs. pendentes)
 
 ### Builder visual & Temas
 - **ThemeEditor** — color pickers, 5 fontes, raio de borda, tipo de menu (4 opções), tipo de card (4 opções), upload de logo, preview ao vivo
-- **PageBuilder** — reordenar/toggle/deletar seções, catálogo de 11 tipos de seção
+- **PageBuilder** — reordenar/toggle/deletar seções, catálogo de 11 tipos de seção, edição linha-a-linha para estatísticas do hero, FAQ e depoimentos
+- **Modelos de Loja editáveis** (`lib/store-templates.ts`) — biblioteca nativa derivada dos projetos em `references/projetos-base/`: Turismo Direto, Receptivo Premium, Agência de Pacotes, Hospedagem Boutique e Resort/Day Use. No onboarding o tenant escolhe um modelo, vê preview em tempo real e recebe uma cópia editável do tema, seções e primeiro produto
 - **SectionRenderer** — Hero, ProductGrid, Banner, Testimonials, FAQ, Newsletter, About, Contact, SearchBar, Map, Footer
 - CSS variables aplicadas em runtime — troca de identidade visual sem rebuild
 - Seções configuráveis por formulário (JSONB config por seção)
@@ -184,6 +185,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Hospedagem** (pousada, hotel, airbnb), **Receptivo** (experiência, ingresso, transporte), **Emissivo** (pacote, cruzeiro)
 - Tarifário por produto: `per_person`, `per_night`, `fixed` com sazonalidade e períodos
 - Upload de até 8 imagens por produto com galeria (Supabase Storage)
+- `products.extra_data` alimenta layouts profissionais com duração/local, destaques, inclui, não inclui, roteiro e informações importantes; o CRUD de produtos expõe esses campos sem migration nova
 - SEO por produto (title, description, OG)
 - Limite de produtos por plano (Básico: 20 / Pro: 100 / Premium: ilimitado)
 - **Gating de features por plano** (`lib/plans/limits.ts`): `booking_engine` (Básico = só WhatsApp, bloqueia modo "reserva" e conectar pagamento), `custom_domain` (bloqueia domínio próprio) e `pixel_integrations` (bloqueia pixels/analytics, incluindo `head_scripts`) **aplicados no backend** (products/save, payments/connect, domain/add, integrations/save); trial (sem plano) = acesso liberado; produto já em modo reserva mantém após downgrade (só novas ativações são barradas). Antes só `max_products`/`max_team_members` eram enforçados (furo de monetização fechado)
@@ -713,6 +715,8 @@ lib/
   api-keys/auth.ts    → hash de chaves públicas
   reports/data.ts     → agregação para PDF
   loyalty/            → settings.ts, auth.ts (OTP), earn.ts, ledger.ts
+references/
+  projetos-base/      → projetos prontos usados como inspiração visual; excluídos do build/typecheck
 db/
   migrations/         → 26 arquivos SQL completos (001 a 026)
   policies/rls.sql    → RLS em todas as tabelas de tenant

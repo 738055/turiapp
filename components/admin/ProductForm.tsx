@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { slugify } from "@/lib/utils";
 import type { Product, ProductModule, ProductType, SaleMode, ProductRate } from "@/types";
 import { Plus, Trash2, Save } from "lucide-react";
@@ -58,6 +57,16 @@ interface RateForm {
   occupancy_max: string;
 }
 
+interface ProductExtraForm {
+  duration: string;
+  location: string;
+  highlights: string;
+  included: string;
+  not_included: string;
+  itinerary: string;
+  important_info: string;
+}
+
 interface ProductFormProps {
   tenantId: string;
   defaultWhatsapp: string;
@@ -87,6 +96,18 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
     seo_title: initialProduct?.seo_title ?? "",
     seo_description: initialProduct?.seo_description ?? "",
   });
+  const [extra, setExtra] = useState<ProductExtraForm>(() => {
+    const data = (initialProduct?.extra_data ?? {}) as Record<string, unknown>;
+    return {
+      duration: stringValue(data.duration),
+      location: stringValue(data.location),
+      highlights: linesFromArray(data.highlights),
+      included: linesFromArray(data.included),
+      not_included: linesFromArray(data.not_included),
+      itinerary: itineraryToText(data.itinerary),
+      important_info: stringValue(data.important_info),
+    };
+  });
 
   const [images, setImages] = useState<string[]>(initialProduct?.images ?? []);
 
@@ -108,6 +129,10 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
 
   function update(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function updateExtra(field: keyof ProductExtraForm, value: string) {
+    setExtra((current) => ({ ...current, [field]: value }));
   }
 
   function updateTitle(title: string) {
@@ -151,6 +176,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
           mode,
           ...form,
           images,
+          extra_data: extraToPayload(extra),
           rates: rates.map((r) => ({
             ...r,
             price: parseFloat(r.price) || 0,
@@ -268,6 +294,42 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
                 {s === "draft" ? "Rascunho" : s === "published" ? "Publicado" : "Arquivado"}
               </button>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Layout content */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Conteudo usado no layout</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Estes campos alimentam os cards, a pagina do produto e os modelos de loja escolhidos no onboarding.
+          </p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Duracao / periodo</Label>
+              <Input value={extra.duration} onChange={(e) => updateExtra("duration", e.target.value)} placeholder="Ex: 6 horas, 5 dias / 4 noites" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Local / destino</Label>
+              <Input value={extra.location} onChange={(e) => updateExtra("location", e.target.value)} placeholder="Ex: Foz do Iguacu, Gramado e Canela" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <TextListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder={"Transfer incluso\nGuia local\nCancelamento facilitado"} />
+            <TextListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder={"Transporte\nIngresso\nAcompanhamento"} />
+            <TextListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder={"Alimentacao\nDespesas pessoais"} />
+            <TextListField label="Informacoes importantes" value={extra.important_info} onChange={(value) => updateExtra("important_info", value)} placeholder="Documentos, regras de cancelamento, ponto de encontro..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Roteiro</Label>
+            <textarea
+              value={extra.itinerary}
+              onChange={(e) => updateExtra("itinerary", e.target.value)}
+              className="h-28 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
+              placeholder={"Chegada | Recepcao e orientacoes iniciais\nRoteiro principal | Experiencia conforme descricao\nRetorno | Encerramento e suporte final"}
+            />
+            <p className="text-xs text-gray-400">Use uma etapa por linha no formato: Titulo | Descricao</p>
           </div>
         </CardContent>
       </Card>
@@ -448,4 +510,67 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
       </div>
     </div>
   );
+}
+
+function TextListField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-24 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
+        placeholder={placeholder}
+      />
+      <p className="text-xs text-gray-400">Uma informacao por linha.</p>
+    </div>
+  );
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function linesFromArray(value: unknown): string {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : stringValue(value);
+}
+
+function linesToArray(value: string): string[] {
+  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+function itineraryToText(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const row = item as { title?: unknown; description?: unknown };
+      const title = typeof row.title === "string" ? row.title : "";
+      const description = typeof row.description === "string" ? row.description : "";
+      return title || description ? `${title} | ${description}` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function textToItinerary(value: string): { title: string; description: string }[] {
+  return value
+    .split("\n")
+    .map((line) => {
+      const [title, ...rest] = line.split("|");
+      return { title: title.trim(), description: rest.join("|").trim() };
+    })
+    .filter((item) => item.title || item.description);
+}
+
+function extraToPayload(extra: ProductExtraForm): Record<string, unknown> {
+  return {
+    duration: extra.duration.trim(),
+    location: extra.location.trim(),
+    highlights: linesToArray(extra.highlights),
+    included: linesToArray(extra.included),
+    not_included: linesToArray(extra.not_included),
+    itinerary: textToItinerary(extra.itinerary),
+    important_info: extra.important_info.trim(),
+  };
 }

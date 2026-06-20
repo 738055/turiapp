@@ -33,6 +33,7 @@ const schema = z.object({
   seo_title: z.string().max(200).optional(),
   seo_description: z.string().max(500).optional(),
   images: z.array(z.string().url()).max(8).default([]),
+  extra_data: z.record(z.string(), z.unknown()).default({}),
   rates: z.array(rateSchema).default([]),
 });
 
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
         sale_mode: d.sale_mode,
         whatsapp_number: d.whatsapp_number ?? null,
         images: d.images,
+        extra_data: d.extra_data,
         seo_title: d.seo_title ?? null,
         seo_description: d.seo_description ?? null,
       })
@@ -160,6 +162,7 @@ export async function POST(req: NextRequest) {
         sale_mode: d.sale_mode,
         whatsapp_number: d.whatsapp_number ?? null,
         images: d.images,
+        extra_data: d.extra_data,
         seo_title: d.seo_title ?? null,
         seo_description: d.seo_description ?? null,
         updated_at: new Date().toISOString(),

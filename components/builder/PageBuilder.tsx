@@ -40,7 +40,7 @@ interface PageBuilderProps {
   tenantId: string;
 }
 
-export function PageBuilder({ page, theme, tenantId }: PageBuilderProps) {
+export function PageBuilder({ page, tenantId }: PageBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [sections, setSections] = useState<PageSection[]>(
@@ -333,6 +333,38 @@ function SectionConfigForm({
               className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-20"
             />
           )}
+          {field.type === "list" && (
+            <textarea
+              value={listToText(cfg[field.key])}
+              onChange={(e) => updateField(field.key, textToList(e.target.value))}
+              placeholder={field.placeholder}
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-24"
+            />
+          )}
+          {field.type === "stat-list" && (
+            <textarea
+              value={statsToText(cfg[field.key])}
+              onChange={(e) => updateField(field.key, textToStats(e.target.value))}
+              placeholder={field.placeholder ?? "24h | suporte\n4.9 | avaliacao media"}
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-24"
+            />
+          )}
+          {field.type === "faq-list" && (
+            <textarea
+              value={faqToText(cfg[field.key])}
+              onChange={(e) => updateField(field.key, textToFaq(e.target.value))}
+              placeholder={field.placeholder ?? "Pergunta | Resposta"}
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-28"
+            />
+          )}
+          {field.type === "testimonial-list" && (
+            <textarea
+              value={testimonialsToText(cfg[field.key])}
+              onChange={(e) => updateField(field.key, textToTestimonials(e.target.value))}
+              placeholder={field.placeholder ?? "Nome | 5 | Depoimento"}
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-28"
+            />
+          )}
           {field.type === "select" && (
             <select
               value={(cfg[field.key] as string) ?? ""}
@@ -361,12 +393,18 @@ function SectionConfigForm({
 function getSectionFields(type: SectionType): Array<{
   key: string;
   label: string;
-  type: "text" | "textarea" | "select" | "number";
+  type: "text" | "textarea" | "select" | "number" | "list" | "faq-list" | "testimonial-list" | "stat-list";
   placeholder?: string;
   options?: { value: string; label: string }[];
 }> {
   const map: Partial<Record<SectionType, ReturnType<typeof getSectionFields>>> = {
     hero: [
+      { key: "variant", label: "Estilo visual", type: "select", options: [
+        { value: "classic", label: "Classico" },
+        { value: "marketplace", label: "Agencia / receptivo" },
+        { value: "editorial", label: "Editorial / hospedagem" },
+      ]},
+      { key: "eyebrow", label: "Texto pequeno acima do titulo", type: "text", placeholder: "Loja oficial" },
       { key: "title", label: "Título", type: "text", placeholder: "Bem-vindo à nossa loja" },
       { key: "subtitle", label: "Subtítulo", type: "textarea", placeholder: "Uma linha sobre o que você oferece" },
       { key: "cta_label", label: "Texto do botão", type: "text", placeholder: "Ver produtos" },
@@ -383,6 +421,7 @@ function getSectionFields(type: SectionType): Array<{
         { value: "center", label: "Centro" },
         { value: "right", label: "Direita" },
       ]},
+      { key: "stats", label: "Estatisticas (valor | legenda)", type: "stat-list" },
     ],
     "product-grid": [
       { key: "title", label: "Título da seção", type: "text", placeholder: "Nossos produtos" },
@@ -399,6 +438,10 @@ function getSectionFields(type: SectionType): Array<{
         { value: "3", label: "3 colunas" },
         { value: "4", label: "4 colunas" },
       ]},
+      { key: "variant", label: "Estilo da seção", type: "select", options: [
+        { value: "marketplace", label: "Marketplace" },
+        { value: "editorial", label: "Editorial" },
+      ]},
     ],
     banner: [
       { key: "title", label: "Título", type: "text" },
@@ -411,7 +454,7 @@ function getSectionFields(type: SectionType): Array<{
       { key: "title", label: "Título", type: "text", placeholder: "Fale conosco" },
       { key: "email", label: "E-mail", type: "text" },
       { key: "phone", label: "Telefone", type: "text" },
-      { key: "whatsapp_number", label: "WhatsApp", type: "text", placeholder: "+5511999999999" },
+      { key: "whatsapp", label: "WhatsApp", type: "text", placeholder: "+5511999999999" },
       { key: "address", label: "Endereço", type: "text" },
     ],
     about: [
@@ -427,6 +470,14 @@ function getSectionFields(type: SectionType): Array<{
     footer: [
       { key: "company_name", label: "Nome da empresa", type: "text" },
       { key: "description", label: "Descrição curta", type: "textarea" },
+    ],
+    testimonials: [
+      { key: "title", label: "Titulo", type: "text" },
+      { key: "items", label: "Depoimentos (nome | nota | texto)", type: "testimonial-list" },
+    ],
+    faq: [
+      { key: "title", label: "Titulo", type: "text" },
+      { key: "items", label: "Perguntas (pergunta | resposta)", type: "faq-list" },
     ],
   };
 
@@ -450,4 +501,79 @@ function getDefaultConfig(type: SectionType): Record<string, unknown> {
     footer: {},
   };
   return defaults[type] ?? {};
+}
+
+function listToText(value: unknown): string {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : "";
+}
+
+function textToList(value: string): string[] {
+  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+function statsToText(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const stat = item as { value?: unknown; label?: unknown };
+      return `${typeof stat.value === "string" ? stat.value : ""} | ${typeof stat.label === "string" ? stat.label : ""}`.trim();
+    })
+    .filter((line) => line !== "|")
+    .join("\n");
+}
+
+function textToStats(value: string): { value: string; label: string }[] {
+  return value
+    .split("\n")
+    .map((line) => {
+      const [statValue, ...rest] = line.split("|");
+      return { value: statValue.trim(), label: rest.join("|").trim() };
+    })
+    .filter((item) => item.value || item.label);
+}
+
+function faqToText(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const faq = item as { question?: unknown; answer?: unknown };
+      return `${typeof faq.question === "string" ? faq.question : ""} | ${typeof faq.answer === "string" ? faq.answer : ""}`.trim();
+    })
+    .filter((line) => line !== "|")
+    .join("\n");
+}
+
+function textToFaq(value: string): { question: string; answer: string }[] {
+  return value
+    .split("\n")
+    .map((line) => {
+      const [question, ...rest] = line.split("|");
+      return { question: question.trim(), answer: rest.join("|").trim() };
+    })
+    .filter((item) => item.question || item.answer);
+}
+
+function testimonialsToText(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "";
+      const testimonial = item as { name?: unknown; rating?: unknown; text?: unknown };
+      const rating = typeof testimonial.rating === "number" ? String(testimonial.rating) : "5";
+      return `${typeof testimonial.name === "string" ? testimonial.name : ""} | ${rating} | ${typeof testimonial.text === "string" ? testimonial.text : ""}`.trim();
+    })
+    .filter((line) => line !== "| 5 |")
+    .join("\n");
+}
+
+function textToTestimonials(value: string): { name: string; rating: number; text: string }[] {
+  return value
+    .split("\n")
+    .map((line) => {
+      const [name, rating, ...rest] = line.split("|");
+      return { name: name.trim(), rating: Number(rating?.trim()) || 5, text: rest.join("|").trim() };
+    })
+    .filter((item) => item.name || item.text);
 }

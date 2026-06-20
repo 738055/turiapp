@@ -1,10 +1,11 @@
 import type { PageSection, Theme } from "@/types";
 import { Phone, Mail, MapPin } from "lucide-react";
 
-interface ContactConfig { title?: string; email?: string; phone?: string; address?: string; whatsapp?: string }
+interface ContactConfig { title?: string; email?: string; phone?: string; address?: string; whatsapp?: string; whatsapp_number?: string }
 
 export function ContactSection({ section }: { section: PageSection; theme: Theme | null; tenantId: string }) {
   const cfg = (section.config ?? {}) as ContactConfig;
+  const whatsapp = cfg.whatsapp ?? cfg.whatsapp_number;
   return (
     <section className="py-12 px-6 max-w-4xl mx-auto w-full">
       {cfg.title && <h2 className="text-3xl font-bold text-center mb-8">{cfg.title}</h2>}
@@ -31,10 +32,10 @@ export function ContactSection({ section }: { section: PageSection; theme: Theme
           </div>
         )}
       </div>
-      {cfg.whatsapp && (
+      {whatsapp && (
         <div className="mt-6 text-center">
           <a
-            href={`https://wa.me/${cfg.whatsapp.replace(/\D/g, "")}`}
+            href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-[var(--radius)] font-semibold hover:bg-green-600 transition-colors"

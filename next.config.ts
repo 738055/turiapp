@@ -9,7 +9,7 @@ const CSP = [
   // Fonts
   "font-src 'self' https://fonts.gstatic.com",
   // Images
-  "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com https://www.google-analytics.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://www.facebook.com https://www.google-analytics.com",
   // Connect (API calls, Supabase realtime)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.mercadopago.com https://www.google-analytics.com https://analytics.google.com",
   // Frames (Stripe)
@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
       },
     ],
   },

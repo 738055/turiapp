@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-verde: #1C3A2A;
+  --color-verde-light: #2a5540;
+  --color-terracota: #C4623A;
+  --color-terracota-light: #d4754e;
+  --color-marfim: #FAF7F2;
+  --color-marfim-dark: #f0ebe2;
+  --color-ouro: #B8963E;
+  --color-ouro-light: #cca94e;
+  --color-escuro: #0f1e16;
+
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+}
+
+:root {
+  --verde: #1C3A2A;
+  --verde-light: #2a5540;
+  --terracota: #C4623A;
+  --marfim: #FAF7F2;
+  --marfim-dark: #f0ebe2;
+  --ouro: #B8963E;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--marfim);
+  color: var(--verde);
+  font-family: "DM Sans", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+::selection {
+  background: var(--terracota);
+  color: white;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--marfim); }
+::-webkit-scrollbar-thumb { background: var(--verde); border-radius: 3px; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-right {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.snap-x-container {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.snap-x-container::-webkit-scrollbar { display: none; }
+
+.grain-texture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.clip-diagonal { clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%); }
+.clip-diagonal-reverse { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 90%); }

@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 45, 45, 45;        /* grafite do wordmark */
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+
+  /* Tokens de marca Pratik (colinas / sol / grafite) */
+  --brand-green: #5E9E20;
+  --brand-sun: #FBB034;
+  --brand-accent: #F39200;
+  --brand-charcoal: #2D2D2D;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  color: var(--brand-charcoal);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Identidade tipográfica Pratik
+   Títulos usam a display (Poppins) — geométrica e arredondada,
+   ecoando o wordmark do logo. Corpo permanece em Inter (legível).
+   Aplicado por herança para não exigir classe em cada componente.
+   ────────────────────────────────────────────────────────────── */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins), var(--font-inter), sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Texto com a assinatura de cor da marca (colinas → sol) */
+.text-brand-gradient {
+  background-image: linear-gradient(120deg, #5E9E20 0%, #76B82F 35%, #FBB034 75%, #F39200 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Seleção de texto com a cor da marca */
+::selection {
+  background-color: rgba(94, 158, 32, 0.18);
+  color: var(--brand-charcoal);
+}
+
+/* Foco visível para navegação por teclado (acessibilidade / WCAG AA) */
+:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom Scrollbar — tons da marca */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f4ec; }
+::-webkit-scrollbar-thumb { background: #bcd79a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brand-green); }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right { animation: slideInRight 0.4s ease-out; }
+
+@keyframes bounceIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* Respeita usuários que preferem menos movimento (acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

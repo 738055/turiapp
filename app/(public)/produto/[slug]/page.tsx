@@ -7,9 +7,20 @@ import { formatCurrency } from "@/lib/utils";
 import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import type { Product, ProductRate, Theme } from "@/types";
+import { Check, Clock, Info, MapPin, X } from "lucide-react";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
+}
+
+interface ProductExtraData {
+  duration?: string;
+  location?: string;
+  highlights?: string[];
+  included?: string[];
+  not_included?: string[];
+  itinerary?: { title?: string; description?: string }[];
+  important_info?: string;
 }
 
 export async function generateMetadata({ params }: ProductPageProps) {
@@ -74,6 +85,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const p = product as unknown as Product & { rates: ProductRate[] };
   const t = theme as unknown as Theme | null;
+  const extra = (p.extra_data ?? {}) as ProductExtraData;
+  const highlights = stringArray(extra.highlights);
+  const included = stringArray(extra.included);
+  const notIncluded = stringArray(extra.not_included);
+  const itinerary = Array.isArray(extra.itinerary) ? extra.itinerary.filter((item) => item.title || item.description) : [];
   const lowestRate = p.rates?.reduce(
     (min, r) => (r.price < min.price ? r : min),
     p.rates[0]
@@ -136,12 +152,58 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </span>
               </p>
             )}
+            <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
+              {extra.duration && <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4 text-gray-400" /> {extra.duration}</span>}
+              {extra.location && <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-gray-400" /> {extra.location}</span>}
+            </div>
+            {!!highlights.length && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {highlights.map((item) => (
+                  <span key={item} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                    <Check className="h-3.5 w-3.5" style={{ color: t?.primary_color ?? "#0ea5e9" }} /> {item}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {p.description && (
             <div>
               <h2 className="font-semibold mb-2">Sobre</h2>
               <p className="text-gray-600 leading-relaxed whitespace-pre-line">{p.description}</p>
+            </div>
+          )}
+
+          {(included.length > 0 || notIncluded.length > 0) && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {included.length > 0 && (
+                <InfoList title="Inclui" items={included} icon="check" />
+              )}
+              {notIncluded.length > 0 && (
+                <InfoList title="Nao inclui" items={notIncluded} icon="x" />
+              )}
+            </div>
+          )}
+
+          {itinerary.length > 0 && (
+            <div>
+              <h2 className="font-semibold mb-3">Roteiro</h2>
+              <div className="space-y-3">
+                {itinerary.map((item, index) => (
+                  <div key={`${item.title}-${index}`} className="rounded-[var(--radius,0.5rem)] border border-gray-100 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Etapa {index + 1}</p>
+                    {item.title && <p className="mt-1 font-semibold text-gray-900">{item.title}</p>}
+                    {item.description && <p className="mt-1 text-sm leading-relaxed text-gray-600">{item.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {extra.important_info && (
+            <div className="rounded-[var(--radius,0.5rem)] border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="mb-1 flex items-center gap-1.5 font-semibold"><Info className="h-4 w-4" /> Informacoes importantes</p>
+              <p className="whitespace-pre-line leading-relaxed">{extra.important_info}</p>
             </div>
           )}
 
@@ -207,5 +269,27 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </section>
       )}
     </main>
+  );
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function InfoList({ title, items, icon }: { title: string; items: string[]; icon: "check" | "x" }) {
+  const Icon = icon === "check" ? Check : X;
+  const color = icon === "check" ? "text-green-600" : "text-gray-400";
+  return (
+    <div className="rounded-[var(--radius,0.5rem)] border border-gray-100 bg-white p-4">
+      <h2 className="mb-3 font-semibold">{title}</h2>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2 text-sm text-gray-600">
+            <Icon className={`mt-0.5 h-4 w-4 flex-shrink-0 ${color}`} />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

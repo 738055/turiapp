@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/utils";
+import { STORE_TEMPLATES, getStoreTemplate } from "@/lib/store-templates";
 import {
   Building2,
   Palette,
@@ -49,7 +49,6 @@ const PLATFORM_HOST = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? "turiapp.com.br";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +73,20 @@ export default function OnboardingPage() {
 
   function updateSlug(name: string) {
     setData((d) => ({ ...d, company_name: name, slug: slugify(name) }));
+  }
+
+  function applyTemplate(templateId: string) {
+    const template = getStoreTemplate(templateId);
+    setData((d) => ({
+      ...d,
+      template: template.id,
+      primary_color: template.theme.primary_color,
+      secondary_color: template.theme.secondary_color,
+      accent_color: template.theme.accent_color,
+      product_module: template.productDefaults.module,
+      product_type: template.productDefaults.type,
+      product_title: d.product_title || template.productDefaults.title,
+    }));
   }
 
   const isLast = step === STEPS.length - 1;
@@ -151,7 +164,7 @@ export default function OnboardingPage() {
                 <StepEmpresa data={data} update={update} updateSlug={updateSlug} />
               )}
               {step === 1 && <StepVisual data={data} update={update} />}
-              {step === 2 && <StepModelo data={data} update={update} />}
+              {step === 2 && <StepModelo data={data} applyTemplate={applyTemplate} />}
               {step === 3 && <StepPagamento data={data} update={update} />}
               {step === 4 && <StepProduto data={data} update={update} />}
               {step === 5 && <StepDominio data={data} update={update} />}
@@ -284,7 +297,9 @@ function StepVisual({ data, update }: {
       </div>
       {/* Live preview */}
       <SitePreview
+        templateId={data.template}
         primaryColor={data.primary_color}
+        secondaryColor={data.secondary_color}
         accentColor={data.accent_color}
         companyName={data.company_name || "Minha Loja"}
       />
@@ -292,51 +307,64 @@ function StepVisual({ data, update }: {
   );
 }
 
-function SitePreview({ primaryColor, accentColor, companyName }: {
+function SitePreview({ templateId, primaryColor, secondaryColor, accentColor, companyName }: {
+  templateId: string;
   primaryColor: string;
+  secondaryColor: string;
   accentColor: string;
   companyName: string;
 }) {
+  const template = getStoreTemplate(templateId);
+  const hero = template.sections.find((section) => section.type === "hero")?.config ?? {};
+  const title = String(hero.title ?? `Bem-vindo a ${companyName}`).replace("{{company_name}}", companyName);
+  const subtitle = String(hero.subtitle ?? template.description);
+  const imageUrl = typeof hero.image_url === "string" ? hero.image_url : "";
+  const radius = template.theme.border_radius;
+  const cardLabel = template.category === "hospedagem" ? "Suite premium" : template.category === "emissivo" ? "Pacote completo" : "Passeio destaque";
+
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
-      <div className="bg-gray-100 px-3 py-1.5 flex items-center gap-2 border-b">
+    <div className="overflow-hidden rounded-xl border shadow-sm">
+      <div className="flex items-center gap-2 border-b bg-gray-100 px-3 py-1.5">
         <div className="flex gap-1">
           <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
           <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
         </div>
-        <div className="flex-1 bg-white rounded text-xs text-gray-400 px-2 py-0.5 truncate">
+        <div className="flex-1 truncate rounded bg-white px-2 py-0.5 text-xs text-gray-400">
           {companyName.toLowerCase().replace(/\s+/g, "")}.{PLATFORM_HOST}
         </div>
       </div>
-      {/* Mock site */}
-      <div style={{ fontFamily: "system-ui, sans-serif" }}>
-        {/* Navbar */}
-        <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: primaryColor }}>
-          <span className="text-white font-bold text-sm">{companyName}</span>
+      <div style={{ fontFamily: template.theme.font_body, backgroundColor: template.theme.background_color }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ backgroundColor: secondaryColor }}>
+          <span className="text-sm font-bold text-white">{companyName}</span>
           <div className="flex gap-3">
-            {["Início", "Produtos", "Contato"].map((i) => (
-              <span key={i} className="text-white/80 text-xs">{i}</span>
+            {["Inicio", "Produtos", "Contato"].map((i) => (
+              <span key={i} className="text-xs text-white/80">{i}</span>
             ))}
           </div>
         </div>
-        {/* Hero */}
-        <div className="px-5 py-8 text-center" style={{ backgroundColor: primaryColor + "18" }}>
-          <h2 className="font-bold text-base text-gray-900">Bem-vindo à {companyName}!</h2>
-          <p className="text-xs mt-1 text-gray-500">Experiências únicas para você</p>
-          <div className="mt-3 inline-block px-5 py-1.5 text-xs text-white font-semibold rounded-full"
-            style={{ backgroundColor: accentColor }}>
-            Ver produtos
+        <div className="relative overflow-hidden px-5 py-10 text-left text-white">
+          {imageUrl && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }} />}
+          <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, ${secondaryColor}ee, ${primaryColor}66)` }} />
+          <div className="relative max-w-sm">
+            <p className="mb-2 text-[10px] uppercase tracking-[0.25em] text-white/70">{template.name}</p>
+            <h2 className="text-xl font-bold leading-tight" style={{ fontFamily: template.theme.font_heading }}>{title}</h2>
+            <p className="mt-2 line-clamp-2 text-xs text-white/80">{subtitle}</p>
+            <div
+              className="mt-3 inline-block px-5 py-1.5 text-xs font-semibold text-white"
+              style={{ backgroundColor: accentColor, borderRadius: radius }}
+            >
+              Ver produtos
+            </div>
           </div>
         </div>
-        {/* Cards */}
-        <div className="p-4 grid grid-cols-3 gap-2 bg-white">
+        <div className="grid grid-cols-3 gap-2 bg-white p-4">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="border rounded-lg overflow-hidden">
-              <div className="h-12 bg-gray-100" />
+            <div key={n} className="overflow-hidden border" style={{ borderRadius: radius }}>
+              <div className="h-12 bg-gray-100" style={{ background: n === 1 ? `${primaryColor}22` : "#f3f4f6" }} />
               <div className="p-2">
-                <div className="h-1.5 bg-gray-200 rounded mb-1.5" />
-                <div className="h-1.5 w-2/3 bg-gray-100 rounded mb-1.5" />
+                <p className="mb-1 truncate text-[10px] font-semibold text-gray-700">{cardLabel}</p>
+                <div className="mb-1.5 h-1.5 w-2/3 rounded bg-gray-100" />
                 <div className="text-xs font-bold" style={{ color: primaryColor }}>R$ 199</div>
               </div>
             </div>
@@ -347,33 +375,47 @@ function SitePreview({ primaryColor, accentColor, companyName }: {
   );
 }
 
-function StepModelo({ data, update }: {
+function StepModelo({ data, applyTemplate }: {
   data: OnboardingData;
-  update: (f: keyof OnboardingData, v: string) => void;
+  applyTemplate: (templateId: string) => void;
 }) {
-  const templates = [
-    { id: "turismo-basico", name: "Turismo Básico", desc: "Simples e direto ao ponto", emoji: "🏖️" },
-    { id: "hospedagem", name: "Hospedagem", desc: "Pousadas e acomodações", emoji: "🏡" },
-    { id: "agencia", name: "Agência Completa", desc: "Múltiplos produtos e categorias", emoji: "✈️" },
-    { id: "receptivo", name: "Receptivo", desc: "Passeios e experiências locais", emoji: "🗺️" },
-  ];
+  const selected = getStoreTemplate(data.template);
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-gray-600">Escolha o modelo inicial. Você pode editar tudo depois.</p>
-      <div className="grid grid-cols-2 gap-3">
-        {templates.map((t) => (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">Escolha o modelo inicial. Ele vira uma copia editavel da loja.</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {STORE_TEMPLATES.map((t) => (
           <button
             key={t.id}
-            onClick={() => update("template", t.id)}
+            onClick={() => applyTemplate(t.id)}
             className={`rounded-xl border-2 p-4 text-left transition-all hover:border-sky-300 ${
               data.template === t.id ? "border-sky-500 bg-sky-50" : "border-gray-200"
             }`}
           >
-            <span className="text-2xl">{t.emoji}</span>
-            <p className="font-semibold text-sm mt-2">{t.name}</p>
-            <p className="text-xs text-gray-400">{t.desc}</p>
+            <div className="mb-3 h-16 overflow-hidden rounded-lg" style={{ background: `linear-gradient(135deg, ${t.theme.secondary_color}, ${t.theme.primary_color})` }}>
+              <div className="h-full w-full bg-white/10" />
+            </div>
+            <p className="text-sm font-semibold">{t.name}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{t.description}</p>
+            <p className="mt-2 text-[10px] uppercase tracking-wide text-gray-400">{t.category} · {t.source}</p>
           </button>
         ))}
+      </div>
+      <div className="rounded-xl border border-gray-200 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">{selected.name}</p>
+            <p className="text-xs text-gray-500">{selected.bestFor.join(" · ")}</p>
+          </div>
+          <span className="rounded-full bg-gray-100 px-2 py-1 text-[10px] uppercase text-gray-500">{selected.category}</span>
+        </div>
+        <SitePreview
+          templateId={data.template}
+          primaryColor={data.primary_color}
+          secondaryColor={data.secondary_color}
+          accentColor={data.accent_color}
+          companyName={data.company_name || "Minha Loja"}
+        />
       </div>
     </div>
   );
