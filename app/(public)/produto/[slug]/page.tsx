@@ -24,6 +24,7 @@ import {
 import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import { createServiceClient } from "@/lib/supabase/server";
+import { featureAllowed, getPlanLimits } from "@/lib/plans/limits";
 import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
 import { absoluteUrl, canonicalUrl, formatTenantPageTitle, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 import {
@@ -100,23 +101,44 @@ export default async function ProductPage({ params }: ProductPageProps) {
   if (!product) notFound();
 
   const p = product as unknown as PublicProduct;
+  const publicRates = (p.rates ?? [])
+    .filter((productRate) => productRate.available !== false)
+    .sort((a, b) => a.price - b.price);
+  const productForSale = { ...p, rates: publicRates } as PublicProduct;
   const t = theme as unknown as Theme | null;
   const extra = productExtra(p);
   const images = productImages(p);
   const category = productCategoryLabel(p);
-  const rate = lowestRate(p);
+  const rate = lowestRate(productForSale);
   const primaryColor = t?.primary_color ?? "#0ea5e9";
   const secondaryColor = t?.secondary_color ?? "#111827";
+  const service = createServiceClient();
 
-  const { data: reviews } = await createServiceClient()
-    .from("reviews")
-    .select("id, customer_name, rating, body, submitted_at")
-    .eq("tenant_id", tenantId ?? "")
-    .eq("product_id", p.id)
-    .eq("status", "approved")
-    .not("submitted_at", "is", null)
-    .order("submitted_at", { ascending: false })
-    .limit(20);
+  const [{ data: reviews }, { data: paymentAccounts }, planLimits] = await Promise.all([
+    service
+      .from("reviews")
+      .select("id, customer_name, rating, body, submitted_at")
+      .eq("tenant_id", tenantId ?? "")
+      .eq("product_id", p.id)
+      .eq("status", "approved")
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(20),
+    service
+      .from("tenant_payment_accounts")
+      .select("provider, status")
+      .eq("tenant_id", tenantId ?? "")
+      .eq("status", "connected"),
+    tenantId ? getPlanLimits(service, tenantId) : Promise.resolve(null),
+  ]);
+
+  const bookingEngineAllowed = featureAllowed(planLimits, "booking_engine");
+  const hasConnectedPayment = paymentAccounts?.some((account) => account.status === "connected") ?? false;
+  const canReserveOnline = p.sale_mode === "booking" && bookingEngineAllowed && publicRates.length > 0;
+  const actionProduct = {
+    ...productForSale,
+    sale_mode: canReserveOnline ? "booking" : "whatsapp",
+  } as Product & { rates?: ProductRate[] };
 
   const approvedReviews = reviews ?? [];
   const avgRating =
@@ -124,7 +146,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       ? approvedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / approvedReviews.length
       : 0;
   const productJsonLd = buildProductJsonLd({
-    product: p,
+    product: productForSale,
     images,
     rate,
     baseUrl: seo?.canonicalBaseUrl,
@@ -240,15 +262,31 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 {rate ? (
                   <>
                     <p className="text-3xl font-bold">{formatCurrency(rate.price, rate.currency)}</p>
-                    <p className="mt-1 text-sm text-white/70">{rateSuffix(rate) || "/ reserva"} em ate 10x sem juros</p>
+                    <p className="mt-1 text-sm text-white/70">
+                      {priceSupportLine(rate, canReserveOnline, hasConnectedPayment)}
+                    </p>
                   </>
                 ) : (
                   <p className="text-2xl font-bold">Consultar tarifa</p>
                 )}
               </div>
               <div className="space-y-5 p-6">
-                {(p.rates?.length ?? 0) > 0 && <RateList rates={p.rates ?? []} primaryColor={primaryColor} />}
-                <BookingWidget product={p as Product & { rates?: ProductRate[] }} theme={t} tenantId={tenantId ?? ""} embedded />
+                {publicRates.length > 0 && (
+                  <RateList rates={publicRates} primaryColor={primaryColor} />
+                )}
+                <CheckoutStatus
+                  canReserveOnline={canReserveOnline}
+                  hasConnectedPayment={hasConnectedPayment}
+                  hasRates={publicRates.length > 0}
+                  bookingEngineAllowed={bookingEngineAllowed}
+                />
+                <BookingWidget
+                  product={actionProduct}
+                  theme={t}
+                  tenantId={tenantId ?? ""}
+                  embedded
+                  hasOnlinePayment={hasConnectedPayment}
+                />
                 <LeadCaptureForm tenantId={tenantId ?? ""} productId={p.id} primaryColor={primaryColor} />
               </div>
             </div>
@@ -389,6 +427,13 @@ function productCapacityTitle(product: PublicProduct): string {
   return "Vagas";
 }
 
+function priceSupportLine(rate: ProductRate, canReserveOnline: boolean, hasConnectedPayment: boolean): string {
+  const suffix = rateSuffix(rate) || "/ reserva";
+  if (canReserveOnline && hasConnectedPayment) return `${suffix} com pagamento online`;
+  if (canReserveOnline) return `${suffix} com pagamento a combinar`;
+  return `${suffix} - tarifa de referencia`;
+}
+
 function InfoPanel({
   title,
   icon: Icon,
@@ -427,19 +472,77 @@ function InfoList({ items, icon: Icon, color }: { items: string[]; icon: LucideI
 
 function RateList({ rates, primaryColor }: { rates: ProductRate[]; primaryColor: string }) {
   return (
-    <div className="space-y-2">
-      {rates.slice(0, 4).map((rate) => (
-        <div key={rate.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-          <div>
-            <p className="text-sm font-bold text-gray-800">{rate.name}</p>
-            <p className="text-xs text-gray-400">
-              {rate.season_name || "Tarifa disponivel"}
-              {rate.valid_from && rate.valid_to ? `, ${formatDate(rate.valid_from)} ate ${formatDate(rate.valid_to)}` : ""}
-            </p>
+    <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-gray-800">Tarifas cadastradas</p>
+        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-500">
+          {rates.length} {rates.length === 1 ? "opcao" : "opcoes"}
+        </span>
+      </div>
+      {rates.slice(0, 5).map((rate) => (
+        <div key={rate.id} className="rounded-lg bg-white px-3 py-2 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-gray-800">{rate.name}</p>
+              <p className="text-xs text-gray-400">
+                {rate.season_name || "Tarifa disponivel"}
+                {rate.valid_from && rate.valid_to ? `, ${formatDate(rate.valid_from)} ate ${formatDate(rate.valid_to)}` : ""}
+              </p>
+              <p className="mt-1 text-[11px] text-gray-400">
+                {rate.occupancy_min}-{rate.occupancy_max} pessoas {rateSuffix(rate) || "/ reserva"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold" style={{ color: primaryColor }}>{formatCurrency(rate.price, rate.currency)}</p>
+              <p className="text-[11px] text-gray-400">{rateSuffix(rate) || "total"}</p>
+            </div>
           </div>
-          <p className="font-bold" style={{ color: primaryColor }}>{formatCurrency(rate.price, rate.currency)}</p>
         </div>
       ))}
+      {rates.length > 5 && <p className="text-xs text-gray-400">Mais tarifas podem aparecer conforme a data escolhida.</p>}
+    </div>
+  );
+}
+
+function CheckoutStatus({
+  canReserveOnline,
+  hasConnectedPayment,
+  hasRates,
+  bookingEngineAllowed,
+}: {
+  canReserveOnline: boolean;
+  hasConnectedPayment: boolean;
+  hasRates: boolean;
+  bookingEngineAllowed: boolean;
+}) {
+  if (canReserveOnline && hasConnectedPayment) {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <p className="font-semibold">Checkout online ativo</p>
+        <p className="mt-1 text-xs">O cliente reserva, paga online e a reserva entra no sistema.</p>
+      </div>
+    );
+  }
+
+  if (canReserveOnline) {
+    return (
+      <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+        <p className="font-semibold">Reserva online ativa</p>
+        <p className="mt-1 text-xs">A reserva entra no sistema; o pagamento fica para combinar com a equipe.</p>
+      </div>
+    );
+  }
+
+  const reason = !bookingEngineAllowed
+    ? "Plano atual sem motor de reservas online."
+    : !hasRates
+      ? "Sem tarifas cadastradas para reserva online."
+      : "Produto configurado para consulta.";
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+      <p className="font-semibold">Consulta comercial</p>
+      <p className="mt-1 text-xs">{reason} As tarifas podem aparecer como referencia, mas a compra fecha por atendimento.</p>
     </div>
   );
 }

@@ -13,6 +13,7 @@ interface BookingWidgetProps {
   theme: Theme | null;
   tenantId: string;
   embedded?: boolean;
+  hasOnlinePayment?: boolean;
 }
 
 interface BookingForm {
@@ -25,12 +26,20 @@ interface BookingForm {
   phone: string;
 }
 
-export function BookingWidget({ product, theme, tenantId, embedded = false }: BookingWidgetProps) {
+export function BookingWidget({ product, theme, tenantId, embedded = false, hasOnlinePayment = false }: BookingWidgetProps) {
   const primaryColor = theme?.primary_color ?? "#0ea5e9";
 
   if (product.sale_mode === "whatsapp") {
     const phone = product.whatsapp_number?.replace(/\D/g, "") ?? "";
     const msg = encodeURIComponent(`Olá! Tenho interesse no produto: ${product.title}`);
+    if (!phone) {
+      return (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+          <p className="text-sm font-semibold text-amber-800">Produto sob consulta</p>
+          <p className="mt-1 text-xs text-amber-700">Use o formulario abaixo para solicitar atendimento da equipe.</p>
+        </div>
+      );
+    }
     const href = `https://wa.me/${phone}?text=${msg}`;
     return (
       <a
@@ -48,7 +57,7 @@ export function BookingWidget({ product, theme, tenantId, embedded = false }: Bo
     );
   }
 
-  return <BookingForm product={product} primaryColor={primaryColor} tenantId={tenantId} embedded={embedded} />;
+  return <BookingForm product={product} primaryColor={primaryColor} tenantId={tenantId} embedded={embedded} hasOnlinePayment={hasOnlinePayment} />;
 }
 
 function BookingForm({
@@ -56,11 +65,13 @@ function BookingForm({
   primaryColor,
   tenantId,
   embedded,
+  hasOnlinePayment,
 }: {
   product: Product & { rates?: ProductRate[] };
   primaryColor: string;
   tenantId: string;
   embedded: boolean;
+  hasOnlinePayment: boolean;
 }) {
   const [step, setStep] = useState<"dates" | "contact" | "confirm" | "done">("dates");
   const [isPending, startTransition] = useTransition();
@@ -79,6 +90,23 @@ function BookingForm({
   });
 
   const selectedRate = product.rates?.find((r) => r.id === form.rateId);
+  const usesCheckoutDate = product.module === "hospedagem" || selectedRate?.rate_type === "per_night";
+  const dateLabel = product.module === "hospedagem"
+    ? "Check-in"
+    : product.type === "ingresso"
+      ? "Data de uso"
+      : product.type === "transporte"
+        ? "Data do servico"
+        : "Data";
+  const guestsLabel = product.type === "ingresso"
+    ? "Ingressos"
+    : product.type === "transporte"
+      ? "Passageiros"
+      : product.module === "emissivo"
+        ? "Viajantes"
+        : product.module === "hospedagem"
+          ? "Hospedes"
+          : "Pessoas";
 
   function update<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -166,14 +194,23 @@ function BookingForm({
   if (step === "done" && bookingId) {
     return (
       <div className="rounded-xl border p-6 text-center">
-        <p className="text-sm text-gray-500">Redirecionando para o pagamento...</p>
+        <p className="text-sm text-gray-500">
+          {hasOnlinePayment ? "Redirecionando para o pagamento..." : "Redirecionando para confirmar a reserva..."}
+        </p>
       </div>
     );
   }
 
   return (
     <div className={embedded ? "space-y-4" : "rounded-xl border p-5 space-y-4"}>
-      <h3 className="font-semibold">Fazer reserva</h3>
+      <div>
+        <h3 className="font-semibold">{hasOnlinePayment ? "Reservar e pagar online" : "Solicitar reserva"}</h3>
+        <p className="mt-1 text-xs text-gray-500">
+          {hasOnlinePayment
+            ? "Escolha a tarifa, informe seus dados e finalize no checkout."
+            : "A reserva entra no sistema e a equipe confirma o pagamento depois."}
+        </p>
+      </div>
 
       {/* Rate selector */}
       {(product.rates?.length ?? 0) > 1 && (
@@ -195,9 +232,9 @@ function BookingForm({
       )}
 
       {/* Dates */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${usesCheckoutDate ? "grid-cols-2" : "grid-cols-1"}`}>
         <div className="space-y-1">
-          <Label className="text-xs">Check-in</Label>
+          <Label className="text-xs">{dateLabel}</Label>
           <Input
             type="date"
             value={form.checkin}
@@ -206,21 +243,23 @@ function BookingForm({
             className="text-sm h-9"
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Check-out</Label>
-          <Input
-            type="date"
-            value={form.checkout}
-            min={form.checkin || new Date().toISOString().split("T")[0]}
-            onChange={(e) => update("checkout", e.target.value)}
-            className="text-sm h-9"
-          />
-        </div>
+        {usesCheckoutDate && (
+          <div className="space-y-1">
+            <Label className="text-xs">Check-out</Label>
+            <Input
+              type="date"
+              value={form.checkout}
+              min={form.checkin || new Date().toISOString().split("T")[0]}
+              onChange={(e) => update("checkout", e.target.value)}
+              className="text-sm h-9"
+            />
+          </div>
+        )}
       </div>
 
       {/* Guests */}
       <div className="space-y-1">
-        <Label className="text-xs">Número de pessoas</Label>
+        <Label className="text-xs">{guestsLabel}</Label>
         <div className="flex items-center gap-3">
           <button
             onClick={() => update("guests", Math.max(1, form.guests - 1))}
@@ -246,7 +285,7 @@ function BookingForm({
             style={{ backgroundColor: primaryColor }}
             disabled={!form.rateId}
           >
-            Reservar agora →
+            {hasOnlinePayment ? "Reservar e pagar" : "Enviar pre-reserva"}
           </Button>
           <Button
             variant="outline"
@@ -324,7 +363,7 @@ function BookingForm({
               disabled={isPending || !form.name || !form.email}
               style={{ backgroundColor: primaryColor }}
             >
-              {isPending ? "Reservando..." : "Confirmar reserva"}
+              {isPending ? "Reservando..." : hasOnlinePayment ? "Confirmar e ir ao pagamento" : "Confirmar pre-reserva"}
             </Button>
           </div>
         </>

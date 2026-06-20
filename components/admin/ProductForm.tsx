@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { slugify } from "@/lib/utils";
 import type { Product, ProductModule, ProductType, SaleMode, ProductRate } from "@/types";
-import { Plus, Trash2, Save } from "lucide-react";
+import { CheckCircle2, ImagePlus, Languages, Plus, Save, Sparkles, Trash2, XCircle, type LucideIcon } from "lucide-react";
 import { MultiImageUpload } from "@/components/ui/MultiImageUpload";
 import { ProBadge } from "@/components/admin/PlanGate";
 
@@ -598,9 +598,30 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
             )}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder={productProfile.highlightsPlaceholder} addLabel="Adicionar destaque" />
-            <ListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder={productProfile.includedPlaceholder} addLabel="Adicionar item incluso" />
-            <ListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder={productProfile.notIncludedPlaceholder} addLabel="Adicionar item nao incluso" />
+            <ListField
+              label="Destaques"
+              value={extra.highlights}
+              onChange={(value) => updateExtra("highlights", value)}
+              placeholder={productProfile.highlightsPlaceholder}
+              addLabel="Adicionar destaque"
+              tone="highlight"
+            />
+            <ListField
+              label="Inclui"
+              value={extra.included}
+              onChange={(value) => updateExtra("included", value)}
+              placeholder={productProfile.includedPlaceholder}
+              addLabel="Adicionar item incluso"
+              tone="include"
+            />
+            <ListField
+              label="Nao inclui"
+              value={extra.not_included}
+              onChange={(value) => updateExtra("not_included", value)}
+              placeholder={productProfile.notIncludedPlaceholder}
+              addLabel="Adicionar item nao incluso"
+              tone="exclude"
+            />
             <div className="space-y-1.5">
               <Label>Informacoes importantes</Label>
               <textarea
@@ -617,9 +638,17 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
                 onChange={(value) => updateExtra("guide_languages", value)}
                 placeholder={productProfile.guideLanguagesPlaceholder}
                 addLabel="Adicionar idioma"
+                tone="language"
               />
             )}
-            <ListField label="Galeria adicional por URL" value={extra.gallery} onChange={(value) => updateExtra("gallery", value)} placeholder="https://..." addLabel="Adicionar foto por URL" />
+            <ListField
+              label="Galeria adicional por URL"
+              value={extra.gallery}
+              onChange={(value) => updateExtra("gallery", value)}
+              placeholder="https://..."
+              addLabel="Adicionar foto por URL"
+              tone="gallery"
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Politica de cancelamento</Label>
@@ -699,20 +728,28 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
         </CardContent>
       </Card>
 
-      {/* Rates / Tarifário (only for booking mode) */}
-      {form.sale_mode === "booking" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Tarifário e temporadas</CardTitle>
-            <Button variant="outline" size="sm" onClick={addRate}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar tarifa
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-500">{productProfile.rateIntro}</p>
+      {/* Rates / Tarifario */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Tarifario e temporadas</CardTitle>
+            <p className="mt-1 text-xs text-gray-400">
+              {form.sale_mode === "booking"
+                ? "Usado no motor de reservas, carrinho e checkout."
+                : "Opcional: aparece na loja como referencia comercial, mas a venda continua por consulta."}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={addRate}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar tarifa
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">{productProfile.rateIntro}</p>
             {!rates.length && (
               <p className="text-sm text-gray-400 text-center py-4">
-                Adicione pelo menos uma tarifa para ativar o motor de reservas.
+                {form.sale_mode === "booking"
+                  ? "Adicione pelo menos uma tarifa para ativar o motor de reservas."
+                  : "Adicione tarifas se quiser mostrar valores no detalhe do produto."}
               </p>
             )}
             {rates.map((rate) => (
@@ -780,9 +817,8 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
+        </CardContent>
+      </Card>
 
       {/* SEO */}
       <Card>
@@ -823,20 +859,80 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
   );
 }
 
+type ListFieldTone = "neutral" | "highlight" | "include" | "exclude" | "language" | "gallery";
+
+const LIST_FIELD_TONES: Record<
+  ListFieldTone,
+  {
+    icon: LucideIcon;
+    wrapper: string;
+    iconBox: string;
+    input: string;
+    addButton: string;
+  }
+> = {
+  neutral: {
+    icon: Plus,
+    wrapper: "border-gray-200 bg-white",
+    iconBox: "bg-gray-100 text-gray-600",
+    input: "border-gray-200 bg-white",
+    addButton: "border-gray-300 text-gray-600 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700",
+  },
+  highlight: {
+    icon: Sparkles,
+    wrapper: "border-amber-200 bg-amber-50/70",
+    iconBox: "bg-amber-100 text-amber-700",
+    input: "border-amber-200 bg-white focus-visible:ring-amber-500",
+    addButton: "border-amber-300 text-amber-700 hover:border-amber-400 hover:bg-amber-100",
+  },
+  include: {
+    icon: CheckCircle2,
+    wrapper: "border-emerald-200 bg-emerald-50/70",
+    iconBox: "bg-emerald-100 text-emerald-700",
+    input: "border-emerald-200 bg-white focus-visible:ring-emerald-500",
+    addButton: "border-emerald-300 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100",
+  },
+  exclude: {
+    icon: XCircle,
+    wrapper: "border-rose-200 bg-rose-50/70",
+    iconBox: "bg-rose-100 text-rose-700",
+    input: "border-rose-200 bg-white focus-visible:ring-rose-500",
+    addButton: "border-rose-300 text-rose-700 hover:border-rose-400 hover:bg-rose-100",
+  },
+  language: {
+    icon: Languages,
+    wrapper: "border-sky-200 bg-sky-50/70",
+    iconBox: "bg-sky-100 text-sky-700",
+    input: "border-sky-200 bg-white focus-visible:ring-sky-500",
+    addButton: "border-sky-300 text-sky-700 hover:border-sky-400 hover:bg-sky-100",
+  },
+  gallery: {
+    icon: ImagePlus,
+    wrapper: "border-violet-200 bg-violet-50/70",
+    iconBox: "bg-violet-100 text-violet-700",
+    input: "border-violet-200 bg-white focus-visible:ring-violet-500",
+    addButton: "border-violet-300 text-violet-700 hover:border-violet-400 hover:bg-violet-100",
+  },
+};
+
 function ListField({
   label,
   value,
   onChange,
   placeholder,
   addLabel,
+  tone = "neutral",
 }: {
   label: string;
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;
   addLabel: string;
+  tone?: ListFieldTone;
 }) {
   const items = value.length ? value : [""];
+  const styles = LIST_FIELD_TONES[tone];
+  const Icon = styles.icon;
 
   function updateItem(index: number, itemValue: string) {
     const next = [...items];
@@ -850,8 +946,13 @@ function ListField({
   }
 
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
+    <div className={`space-y-2 rounded-xl border p-3 ${styles.wrapper}`}>
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full ${styles.iconBox}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <Label className="text-sm font-semibold">{label}</Label>
+      </div>
       <div className="space-y-2">
         {items.map((item, index) => (
           <div key={index} className="flex gap-2">
@@ -859,7 +960,7 @@ function ListField({
               value={item}
               onChange={(e) => updateItem(index, e.target.value)}
               placeholder={placeholder}
-              className="h-9 text-sm"
+              className={`h-9 text-sm ${styles.input}`}
             />
             <button
               type="button"
@@ -875,7 +976,7 @@ function ListField({
       <button
         type="button"
         onClick={() => onChange([...items, ""])}
-        className="inline-flex items-center gap-1.5 rounded border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700"
+        className={`inline-flex items-center gap-1.5 rounded border border-dashed px-3 py-1.5 text-xs font-medium transition ${styles.addButton}`}
       >
         <Plus className="h-3.5 w-3.5" />
         {addLabel}

@@ -8,6 +8,7 @@ import { writeAuditLog, getClientIp } from "@/lib/audit";
 import { sendEmail, renderBookingNotificationHtml } from "@/lib/email/resend";
 import { triggerWebhookEvent } from "@/lib/webhooks/dispatch";
 import { sendPushToUsers } from "@/lib/push/send";
+import { featureAllowed, getPlanLimits } from "@/lib/plans/limits";
 
 const schema = z.object({
   tenant_id: z.string().uuid(),
@@ -58,6 +59,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Este produto não aceita reservas online." }, { status: 400 });
   }
 
+  const limits = await getPlanLimits(service, d.tenant_id);
+  if (!featureAllowed(limits, "booking_engine")) {
+    return NextResponse.json({ error: "Reserva online indisponivel no plano atual." }, { status: 403 });
+  }
+
+  const { data: rate } = await service
+    .from("product_rates")
+    .select("id, price, currency, rate_type, occupancy_min, occupancy_max, available")
+    .eq("id", d.rate_id)
+    .eq("product_id", d.product_id)
+    .eq("available", true)
+    .single();
+
+  if (!rate) {
+    return NextResponse.json({ error: "Tarifa indisponivel." }, { status: 400 });
+  }
+
+  if (d.guests < rate.occupancy_min || d.guests > rate.occupancy_max) {
+    return NextResponse.json({ error: "Quantidade de pessoas fora da faixa permitida para esta tarifa." }, { status: 400 });
+  }
+
+  const totalAmount = calculateBookingTotal({
+    price: Number(rate.price),
+    rateType: rate.rate_type as "fixed" | "per_person" | "per_night" | "per_group",
+    guests: d.guests,
+    checkin: d.checkin ?? null,
+    checkout: d.checkout ?? null,
+  });
+
+  if (totalAmount === null) {
+    return NextResponse.json({ error: "Informe check-in e check-out para tarifa por noite." }, { status: 400 });
+  }
+
   // Upsert customer
   const { data: existingCustomer } = await service
     .from("customers")
@@ -103,8 +137,8 @@ export async function POST(req: NextRequest) {
       check_in: d.checkin ?? null,
       check_out: d.checkout ?? null,
       guests: d.guests,
-      total_price: d.total_amount,
-      currency: d.currency,
+      total_price: totalAmount,
+      currency: (rate.currency as string) ?? d.currency,
       status: "pending",
     })
     .select("id")
@@ -133,8 +167,8 @@ export async function POST(req: NextRequest) {
     checkin: d.checkin ?? null,
     checkout: d.checkout ?? null,
     guests: d.guests,
-    total_price: d.total_amount,
-    currency: d.currency,
+    total_price: totalAmount,
+    currency: (rate.currency as string) ?? d.currency,
     status: "pending",
   }).catch(() => {});
 
@@ -145,11 +179,34 @@ export async function POST(req: NextRequest) {
     bookingId: booking.id,
     productId: d.product_id,
     booking: d,
-    totalAmount: d.total_amount,
-    currency: d.currency,
+    totalAmount,
+    currency: (rate.currency as string) ?? d.currency,
   }).catch(() => {});
 
   return NextResponse.json({ bookingId: booking.id });
+}
+
+function calculateBookingTotal({
+  price,
+  rateType,
+  guests,
+  checkin,
+  checkout,
+}: {
+  price: number;
+  rateType: "fixed" | "per_person" | "per_night" | "per_group";
+  guests: number;
+  checkin: string | null;
+  checkout: string | null;
+}): number | null {
+  if (rateType === "per_person") return price * guests;
+  if (rateType !== "per_night") return price;
+  if (!checkin || !checkout) return null;
+
+  const start = new Date(`${checkin}T12:00:00`);
+  const end = new Date(`${checkout}T12:00:00`);
+  const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return price * Math.max(1, nights);
 }
 
 interface NotifyPayload {

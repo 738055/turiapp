@@ -436,7 +436,9 @@ function PricingBox({
             <span className="block text-2xl font-bold leading-none" style={{ color }}>
               {formatCurrency(rate.price, rate.currency)}
             </span>
-            <span className="mt-1 block text-[12px] text-gray-500">ou 10x sem juros</span>
+            <span className="mt-1 block text-[12px] text-gray-500">
+              {product.sale_mode === "booking" ? "ver datas e checkout" : "tarifa de referencia"}
+            </span>
           </>
         ) : (
           <span className="block text-lg font-bold text-gray-900">Consultar tarifa</span>
