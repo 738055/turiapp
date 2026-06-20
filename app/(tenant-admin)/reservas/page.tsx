@@ -10,6 +10,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   pending:   { label: "Pendente",   variant: "secondary" },
   confirmed: { label: "Confirmada", variant: "success" },
   cancelled: { label: "Cancelada",  variant: "destructive" },
+  canceled:  { label: "Cancelada",  variant: "destructive" },
   completed: { label: "Concluída",  variant: "default" },
   refunded:  { label: "Reembolsada", variant: "secondary" },
 };
@@ -36,7 +37,8 @@ export default async function ReservasPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (sp.status) query = query.eq("status", sp.status);
+  if (sp.status === "cancelled") query = query.in("status", ["cancelled", "canceled"]);
+  else if (sp.status) query = query.eq("status", sp.status);
   if (sp.q) query = query.ilike("customer_name", `%${sp.q}%`);
 
   const { data: bookings } = await query;

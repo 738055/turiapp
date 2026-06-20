@@ -31,7 +31,7 @@ export function BookingWidget({ product, theme, tenantId, embedded = false, hasO
   const primaryColor = theme?.primary_color ?? "#0ea5e9";
 
   if (product.sale_mode === "whatsapp") {
-    return <WhatsAppOrderWidget product={product} primaryColor={primaryColor} />;
+    return <WhatsAppOrderWidget product={product} primaryColor={primaryColor} tenantId={tenantId} />;
   }
 
   if (product.id === "__legacy_whatsapp_disabled__") {
@@ -147,16 +147,23 @@ function RateOptions({
 function WhatsAppOrderWidget({
   product,
   primaryColor,
+  tenantId,
 }: {
   product: Product & { rates?: ProductRate[] };
   primaryColor: string;
+  tenantId: string;
 }) {
   const phone = product.whatsapp_number?.replace(/\D/g, "") ?? "";
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     checkin: "",
     checkout: "",
     guests: 1,
     rateId: "",
+    name: "",
+    email: "",
+    phone: "",
   });
   const availableRates = ratesForDate(product.rates, form.checkin);
   const selectedRate = availableRates.find((rate) => rate.id === form.rateId);
@@ -178,7 +185,12 @@ function WhatsAppOrderWidget({
           ? "Hospedes"
           : "Pessoas";
   const total = selectedRate ? calculateTotal(selectedRate, form.guests, form.checkin, form.checkout) : 0;
-  const ready = !!selectedRate && !!form.checkin && (!usesCheckoutDate || !!form.checkout);
+  const selectionReady = !!selectedRate && !!form.checkin && (!usesCheckoutDate || !!form.checkout);
+  const contactReady =
+    form.name.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) &&
+    form.phone.trim().length >= 8;
+  const ready = selectionReady && contactReady;
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => {
@@ -204,6 +216,9 @@ function WhatsAppOrderWidget({
     "Ola! Tenho interesse neste produto:",
     "",
     `Produto: ${product.title}`,
+    `Cliente: ${form.name.trim()}`,
+    `E-mail: ${form.email.trim()}`,
+    `Telefone/WhatsApp: ${form.phone.trim()}`,
     form.checkin ? `${dateLabel}: ${formatInputDate(form.checkin)}` : null,
     usesCheckoutDate && form.checkout ? `Check-out: ${formatInputDate(form.checkout)}` : null,
     selectedRate ? `Tarifa: ${selectedRate.name} - ${formatCurrency(selectedRate.price, selectedRate.currency)} ${rateSuffixLabel(selectedRate.rate_type)}` : null,
@@ -213,6 +228,34 @@ function WhatsAppOrderWidget({
     "Pode me confirmar disponibilidade e proximos passos?",
   ].filter(Boolean);
   const href = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
+
+  function handleWhatsAppSubmit() {
+    if (!ready || !selectedRate) return;
+    setError(null);
+    startTransition(async () => {
+      const message = lines.join("\n");
+      const res = await fetch("/api/leads/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          product_id: product.id,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          message,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? "Nao foi possivel salvar seus dados. Tente novamente.");
+        return;
+      }
+
+      window.location.href = href;
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -295,17 +338,56 @@ function WhatsAppOrderWidget({
         </div>
       )}
 
+      <div className="rounded-[var(--radius,0.75rem)] border border-gray-200 bg-white p-3">
+        <p className="text-sm font-semibold text-gray-900">Dados do comprador</p>
+        <p className="mt-1 text-xs text-gray-500">
+          Usaremos estes dados para atendimento, confirmacoes e comunicacoes da reserva.
+        </p>
+        <div className="mt-3 space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Nome completo</Label>
+            <Input
+              value={form.name}
+              onChange={(event) => update("name", event.target.value)}
+              className="h-9 text-sm"
+              autoComplete="name"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">E-mail</Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(event) => update("email", event.target.value)}
+              className="h-9 text-sm"
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Telefone / WhatsApp</Label>
+            <Input
+              value={form.phone}
+              onChange={(event) => update("phone", event.target.value)}
+              className="h-9 text-sm"
+              autoComplete="tel"
+            />
+          </div>
+        </div>
+      </div>
+
+      {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+
       {ready ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Button
+          type="button"
+          onClick={handleWhatsAppSubmit}
+          disabled={isPending}
           className="flex w-full items-center justify-center gap-2 rounded-[var(--radius,0.5rem)] py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#25D366" }}
         >
           <MessageCircle className="h-5 w-5" />
-          Enviar pedido no WhatsApp
-        </a>
+          {isPending ? "Salvando dados..." : "Salvar dados e abrir WhatsApp"}
+        </Button>
       ) : (
         <button
           type="button"
@@ -313,7 +395,7 @@ function WhatsAppOrderWidget({
           className="flex w-full items-center justify-center gap-2 rounded-[var(--radius,0.5rem)] bg-gray-200 py-3 text-base font-semibold text-gray-500"
         >
           <MessageCircle className="h-5 w-5" />
-          Selecione data e tarifa
+          {selectionReady ? "Informe os dados do comprador" : "Selecione data e tarifa"}
         </button>
       )}
     </div>

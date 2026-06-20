@@ -75,7 +75,7 @@ export function BookingActions({ bookingId, currentStatus, tenantId }: BookingAc
               <CheckCircle className="h-4 w-4 mr-1" /> Marcar como concluída
             </Button>
           )}
-          {["confirmed", "completed", "cancelled"].includes(status) && (
+          {["confirmed", "completed", "cancelled", "canceled"].includes(status) && (
             <Button
               size="sm"
               variant="outline"

@@ -23,6 +23,10 @@ const ACTION_STATUS: Record<string, string> = {
   refund: "refunded",
 };
 
+const LEGACY_ACTION_STATUS: Partial<Record<string, string>> = {
+  cancel: "canceled",
+};
+
 const ACTION_EVENT: Record<string, WebhookEventType> = {
   confirm: "booking.confirmed",
   cancel: "booking.cancelled",
@@ -123,28 +127,20 @@ export async function POST(req: NextRequest) {
     confirmed: ["cancel", "complete", "refund"],
     completed: ["refund"],
     cancelled: ["refund"],
+    canceled: ["refund"],
   };
   if (!allowedTransitions[booking.status]?.includes(action)) {
     return NextResponse.json({ error: "Acao indisponivel para o status atual da reserva." }, { status: 400 });
   }
 
   const newStatus = ACTION_STATUS[action];
-  if (booking.status === newStatus) {
-    return NextResponse.json({ message: "Reserva ja esta neste status.", status: booking.status });
+  const legacyStatus = LEGACY_ACTION_STATUS[action];
+  if (booking.status === newStatus || (legacyStatus && booking.status === legacyStatus)) {
+    return NextResponse.json({ message: "Reserva ja esta neste status.", status: normalizeBookingStatus(booking.status) });
   }
 
-  const { error: updateError } = await service
-    .from("bookings")
-    .update({ status: newStatus })
-    .eq("id", booking_id)
-    .eq("tenant_id", tenant_id);
-
-  if (updateError) {
-    return NextResponse.json(
-      { error: updateError.message ?? "Nao foi possivel atualizar a reserva." },
-      { status: 500 }
-    );
-  }
+  const updateError = await updateBookingStatus(service, booking_id, tenant_id, newStatus, legacyStatus);
+  if (updateError) return NextResponse.json({ error: updateError }, { status: 500 });
 
   const { data: updatedBooking, error: readAfterWriteError } = await service
     .from("bookings")
@@ -153,7 +149,8 @@ export async function POST(req: NextRequest) {
     .eq("tenant_id", tenant_id)
     .single();
 
-  if (readAfterWriteError || !updatedBooking || updatedBooking.status !== newStatus) {
+  const expectedStoredStatuses = [newStatus, legacyStatus].filter(Boolean);
+  if (readAfterWriteError || !updatedBooking || !expectedStoredStatuses.includes(updatedBooking.status)) {
     return NextResponse.json(
       { error: readAfterWriteError?.message ?? "A reserva nao confirmou a troca de status." },
       { status: 500 }
@@ -174,7 +171,7 @@ export async function POST(req: NextRequest) {
     product_id: booking.product_id,
     customer_name: booking.customer_name,
     customer_email: booking.customer_email,
-    status: newStatus,
+    status: normalizeBookingStatus(updatedBooking.status),
   }).catch(() => {});
 
   if (action === "confirm") {
@@ -193,7 +190,38 @@ export async function POST(req: NextRequest) {
     refund: "Reserva marcada como reembolsada.",
   };
 
-  return NextResponse.json({ message: labels[action], status: updatedBooking.status });
+  return NextResponse.json({ message: labels[action], status: normalizeBookingStatus(updatedBooking.status) });
+}
+
+async function updateBookingStatus(
+  service: ReturnType<typeof createServiceClient>,
+  bookingId: string,
+  tenantId: string,
+  status: string,
+  fallbackStatus?: string
+): Promise<string | null> {
+  const update = async (nextStatus: string) => {
+    const { error } = await service
+      .from("bookings")
+      .update({ status: nextStatus })
+      .eq("id", bookingId)
+      .eq("tenant_id", tenantId);
+    return error;
+  };
+
+  const primaryError = await update(status);
+  if (!primaryError) return null;
+
+  if (fallbackStatus) {
+    const fallbackError = await update(fallbackStatus);
+    if (!fallbackError) return null;
+  }
+
+  return primaryError.message ?? "Nao foi possivel atualizar a reserva.";
+}
+
+function normalizeBookingStatus(status: string): string {
+  return status === "canceled" ? "cancelled" : status;
 }
 
 // Creates a one-time review invite for a completed booking and emails the link.

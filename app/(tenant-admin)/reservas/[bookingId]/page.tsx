@@ -13,6 +13,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   confirmed: "Confirmada",
   cancelled: "Cancelada",
+  canceled: "Cancelada",
   completed: "Concluída",
   refunded: "Reembolsada",
 };
@@ -49,7 +50,7 @@ export default async function BookingDetailPage({ params }: PageProps) {
         <Badge
           variant={
             booking.status === "confirmed" ? "success"
-            : booking.status === "cancelled" ? "destructive"
+            : booking.status === "cancelled" || booking.status === "canceled" ? "destructive"
             : "secondary"
           }
           className="text-sm px-3 py-1"
