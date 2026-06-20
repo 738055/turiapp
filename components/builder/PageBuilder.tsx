@@ -35,10 +35,12 @@ import { Label } from "@/components/ui/label";
 import type { Page, PageSection, SectionType, Theme } from "@/types";
 
 type FieldType = "text" | "textarea" | "select" | "number" | "list" | "faq-list" | "testimonial-list" | "stat-list";
+type FooterLink = { label: string; href: string };
+type SocialLinks = { instagram: string; facebook: string; tiktok: string; youtube: string; linkedin: string };
 type SectionField = {
   key: string;
   label: string;
-  type: FieldType;
+  type: FieldType | "footer-link-list" | "social-links";
   placeholder?: string;
   options?: { value: string; label: string }[];
 };
@@ -537,7 +539,10 @@ function SectionConfigForm({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {fields.map((field) => (
-        <div key={field.key} className={field.type === "textarea" || field.type.includes("list") ? "space-y-1.5 lg:col-span-2" : "space-y-1.5"}>
+        <div
+          key={field.key}
+          className={field.type === "textarea" || field.type.includes("list") || field.type === "social-links" ? "space-y-1.5 lg:col-span-2" : "space-y-1.5"}
+        >
           <Label className="text-xs">{field.label}</Label>
           {field.type === "text" && (
             <Input
@@ -574,6 +579,12 @@ function SectionConfigForm({
               value={testimonialsFromValue(cfg[field.key])}
               onChange={(value) => updateField(field.key, value)}
             />
+          )}
+          {field.type === "footer-link-list" && (
+            <FooterLinksEditor value={footerLinksFromValue(cfg[field.key])} onChange={(value) => updateField(field.key, value)} />
+          )}
+          {field.type === "social-links" && (
+            <SocialLinksEditor value={socialLinksFromValue(cfg[field.key])} onChange={(value) => updateField(field.key, value)} />
           )}
           {field.type === "select" && (
             <select
@@ -936,10 +947,39 @@ function NewsletterPreview({ cfg }: { cfg: Record<string, unknown> }) {
 }
 
 function FooterPreview({ cfg }: { cfg: Record<string, unknown> }) {
+  const links = footerLinksFromValue(cfg.links);
+  const social = socialLinksFromValue(cfg.social);
+  const socialCount = Object.values(social).filter(Boolean).length;
   return (
     <footer className="bg-gray-950 px-6 py-10 text-white">
-      <p className="font-bold">{stringFromValue(cfg.company_name) || "Nome da empresa"}</p>
-      <p className="mt-2 max-w-xl text-sm text-white/60">{stringFromValue(cfg.description) || "Descricao curta da empresa e links finais."}</p>
+      <div className="grid gap-6 sm:grid-cols-[1.2fr_0.8fr_1fr]">
+        <div>
+          <p className="text-lg font-bold">{stringFromValue(cfg.company_name) || "Nome da empresa"}</p>
+          <p className="mt-2 max-w-xl text-sm text-white/60">{stringFromValue(cfg.description) || "Descricao curta da empresa e links finais."}</p>
+          {stringFromValue(cfg.legal_text) && <p className="mt-3 text-xs text-white/45">{stringFromValue(cfg.legal_text)}</p>}
+        </div>
+        <div>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/45">{stringFromValue(cfg.quick_links_title) || "Links uteis"}</p>
+          <div className="grid gap-1.5 text-sm text-white/65">
+            {(links.length ? links : defaultFooterLinks()).slice(0, 5).map((link) => (
+              <span key={`${link.label}-${link.href}`}>{link.label}</span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/45">{stringFromValue(cfg.contact_title) || "Atendimento"}</p>
+          <div className="space-y-1.5 text-sm text-white/65">
+            <p>{stringFromValue(cfg.phone) || stringFromValue(cfg.whatsapp) || "Telefone / WhatsApp"}</p>
+            <p>{stringFromValue(cfg.email) || "email@empresa.com"}</p>
+            <p>{stringFromValue(cfg.address) || "Endereco ou cidade"}</p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            {Array.from({ length: Math.max(3, socialCount || 0) }).slice(0, 5).map((_, index) => (
+              <span key={index} className="h-8 w-8 rounded-full border border-white/15 bg-white/10" />
+            ))}
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }
@@ -1058,8 +1098,24 @@ function getSectionFields(type: SectionType): SectionField[] {
       { key: "btn_label", label: "Texto do botao", type: "text", placeholder: "Inscrever" },
     ],
     footer: [
+      { key: "variant", label: "Estilo do rodape", type: "select", options: [
+        { value: "dark", label: "Escuro profissional" },
+        { value: "brand", label: "Com cores da marca" },
+        { value: "light", label: "Claro editorial" },
+      ] },
       { key: "company_name", label: "Nome da empresa", type: "text" },
       { key: "description", label: "Descricao curta", type: "textarea" },
+      { key: "quick_links_title", label: "Titulo dos links", type: "text", placeholder: "Links uteis" },
+      { key: "links", label: "Links uteis", type: "footer-link-list" },
+      { key: "contact_title", label: "Titulo do contato", type: "text", placeholder: "Atendimento" },
+      { key: "phone", label: "Telefone", type: "text", placeholder: "(00) 0000-0000" },
+      { key: "whatsapp", label: "WhatsApp", type: "text", placeholder: "+5511999999999" },
+      { key: "email", label: "E-mail", type: "text", placeholder: "contato@empresa.com" },
+      { key: "address", label: "Endereco", type: "text", placeholder: "Cidade, estado ou endereco completo" },
+      { key: "hours", label: "Horario de atendimento", type: "text", placeholder: "Seg a sex, 9h as 18h" },
+      { key: "social_title", label: "Titulo das redes", type: "text", placeholder: "Redes sociais" },
+      { key: "social", label: "Redes sociais", type: "social-links" },
+      { key: "legal_text", label: "Texto legal / CNPJ", type: "textarea", placeholder: "CNPJ, razao social ou observacoes legais" },
     ],
     testimonials: [
       { key: "title", label: "Titulo", type: "text" },
@@ -1109,7 +1165,14 @@ function getDefaultConfig(type: SectionType): Record<string, unknown> {
     about: { title: "Sobre nos" },
     contact: { title: "Fale conosco" },
     newsletter: { title: "Fique por dentro!", btn_label: "Inscrever" },
-    footer: {},
+    footer: {
+      variant: "dark",
+      quick_links_title: "Links uteis",
+      contact_title: "Atendimento",
+      social_title: "Redes sociais",
+      links: defaultFooterLinks(),
+      social: {},
+    },
   };
   return defaults[type] ?? {};
 }
@@ -1124,6 +1187,10 @@ function cleanSectionConfig(type: string, config: Record<string, unknown>): Reco
   }
   if (type === "testimonials" && Array.isArray(next.items)) {
     next.items = testimonialsFromValue(next.items).filter((item) => item.name.trim() || item.text.trim());
+  }
+  if (type === "footer") {
+    next.links = footerLinksFromValue(next.links).filter((item) => item.label.trim() || item.href.trim());
+    next.social = socialLinksFromValue(next.social);
   }
   return next;
 }
@@ -1257,6 +1324,83 @@ function TestimonialsEditor({
   );
 }
 
+function FooterLinksEditor({
+  value,
+  onChange,
+}: {
+  value: FooterLink[];
+  onChange: (value: FooterLink[]) => void;
+}) {
+  const items = value.length ? value : defaultFooterLinks();
+  return (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_36px] gap-2">
+          <Input
+            value={item.label}
+            onChange={(event) => onChange(updateArrayItem(items, index, { ...item, label: event.target.value }))}
+            placeholder="Produtos"
+            className="h-9 text-sm"
+          />
+          <Input
+            value={item.href}
+            onChange={(event) => onChange(updateArrayItem(items, index, { ...item, href: event.target.value }))}
+            placeholder="/busca"
+            className="h-9 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(items.filter((_, currentIndex) => currentIndex !== index))}
+            className="h-9 rounded-md border text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 className="mx-auto h-4 w-4" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...items, { label: "", href: "" }])}
+        className="inline-flex items-center gap-1 rounded-md border border-dashed px-3 py-1.5 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50"
+      >
+        <Plus className="h-3 w-3" />
+        Adicionar link
+      </button>
+    </div>
+  );
+}
+
+function SocialLinksEditor({
+  value,
+  onChange,
+}: {
+  value: SocialLinks;
+  onChange: (value: SocialLinks) => void;
+}) {
+  const fields: { key: keyof SocialLinks; label: string; placeholder: string }[] = [
+    { key: "instagram", label: "Instagram", placeholder: "@sualoja" },
+    { key: "facebook", label: "Facebook", placeholder: "sualoja" },
+    { key: "tiktok", label: "TikTok", placeholder: "@sualoja" },
+    { key: "youtube", label: "YouTube", placeholder: "@sualoja" },
+    { key: "linkedin", label: "LinkedIn", placeholder: "empresa" },
+  ];
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {fields.map((field) => (
+        <div key={field.key} className="space-y-1">
+          <Label className="text-[11px] text-gray-500">{field.label}</Label>
+          <Input
+            value={value[field.key]}
+            onChange={(event) => onChange({ ...value, [field.key]: event.target.value })}
+            placeholder={field.placeholder}
+            className="h-9 text-sm"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function updateArrayItem<T>(items: T[], index: number, value: T): T[] {
   return items.map((item, currentIndex) => (currentIndex === index ? value : item));
 }
@@ -1308,4 +1452,37 @@ function testimonialsFromValue(value: unknown): { name: string; rating: number; 
       };
     })
     .filter((item): item is { name: string; rating: number; text: string } => !!item);
+}
+
+function footerLinksFromValue(value: unknown): FooterLink[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const link = item as { label?: unknown; href?: unknown };
+      return { label: stringFromValue(link.label), href: stringFromValue(link.href) };
+    })
+    .filter((item): item is FooterLink => !!item);
+}
+
+function socialLinksFromValue(value: unknown): SocialLinks {
+  const empty = { instagram: "", facebook: "", tiktok: "", youtube: "", linkedin: "" };
+  if (!value || typeof value !== "object") return empty;
+  const social = value as Partial<Record<keyof SocialLinks, unknown>>;
+  return {
+    instagram: stringFromValue(social.instagram),
+    facebook: stringFromValue(social.facebook),
+    tiktok: stringFromValue(social.tiktok),
+    youtube: stringFromValue(social.youtube),
+    linkedin: stringFromValue(social.linkedin),
+  };
+}
+
+function defaultFooterLinks(): FooterLink[] {
+  return [
+    { label: "Produtos", href: "/busca" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Termos", href: "/termos" },
+    { label: "Privacidade", href: "/privacidade" },
+  ];
 }

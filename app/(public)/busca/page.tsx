@@ -16,8 +16,9 @@ interface SearchParams {
   ordenar?: string;
 }
 
-const MODULES = [
-  { value: "", label: "Todos os tipos" },
+type ModuleFilter = "hospedagem" | "receptivo" | "emissivo";
+
+const MODULE_OPTIONS: { value: ModuleFilter; label: string }[] = [
   { value: "hospedagem", label: "Hospedagem" },
   { value: "receptivo", label: "Experiencias e passeios" },
   { value: "emissivo", label: "Pacotes e viagens" },
@@ -37,13 +38,27 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
   if (!tenantId && process.env.NODE_ENV !== "development") notFound();
 
   const q = (sp.q ?? "").trim();
-  const modulo = sp.modulo ?? "";
+  const requestedModulo = sp.modulo ?? "";
   const precoMax = sp.preco_max ? Number(sp.preco_max) : null;
   const pessoas = sp.pessoas ? Number(sp.pessoas) : null;
   const ordenar = sp.ordenar ?? "relevancia";
 
   const service = createServiceClient();
-  const themePromise = getCachedPublicTheme(tenantId ?? "");
+  const [moduleRows, theme] = await Promise.all([
+    service
+      .from("products")
+      .select("module")
+      .eq("tenant_id", tenantId ?? "")
+      .eq("status", "published"),
+    getCachedPublicTheme(tenantId ?? ""),
+  ]);
+  const availableModuleValues = new Set(
+    (moduleRows.data ?? [])
+      .map((row) => row.module)
+      .filter((module): module is ModuleFilter => isModuleFilter(module))
+  );
+  const availableModules = MODULE_OPTIONS.filter((module) => availableModuleValues.has(module.value));
+  const modulo = isModuleFilter(requestedModulo) && availableModuleValues.has(requestedModulo) ? requestedModulo : "";
   let query = service
     .from("products")
     .select("*, rates:product_rates(*)")
@@ -55,7 +70,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
   const safeQ = q.replace(/[,()*%.\\:]/g, " ").trim();
   if (safeQ) query = query.or(`title.ilike.*${safeQ}*,description.ilike.*${safeQ}*`);
 
-  const [{ data }, theme] = await Promise.all([query.limit(200), themePromise]);
+  const { data } = await query.limit(200);
   let results = (data ?? []) as PublicProduct[];
 
   if (precoMax !== null) {
@@ -92,7 +107,8 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
           <input name="q" defaultValue={q} placeholder="O que voce procura?" className="h-11 flex-1 border-0 bg-transparent text-sm focus:outline-none" />
         </div>
         <select name="modulo" defaultValue={modulo} className={`md:col-span-3 ${inputCls}`}>
-          {MODULES.map((module) => <option key={module.value} value={module.value}>{module.label}</option>)}
+          <option value="">Todos os tipos</option>
+          {availableModules.map((module) => <option key={module.value} value={module.value}>{module.label}</option>)}
         </select>
         <input name="preco_max" type="number" min="0" defaultValue={sp.preco_max ?? ""} placeholder="Preco max. (R$)" className={`md:col-span-2 ${inputCls}`} />
         <input name="pessoas" type="number" min="1" defaultValue={sp.pessoas ?? ""} placeholder="Pessoas" className={`md:col-span-1 ${inputCls}`} />
@@ -133,4 +149,8 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
       )}
     </main>
   );
+}
+
+function isModuleFilter(value: unknown): value is ModuleFilter {
+  return MODULE_OPTIONS.some((module) => module.value === value);
 }

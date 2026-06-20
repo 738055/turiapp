@@ -29,6 +29,8 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Edicao guiada para tenants:** listas do produto (destaques, inclui, nao inclui, idiomas, galeria) e roteiro agora usam adicionar/remover item; FAQ, depoimentos e estatisticas do PageBuilder tambem usam campos estruturados, sem sintaxe manual por linha. Produto em modo reserva online nao salva sem tarifa valida
 - **Preview real no painel:** Aparencia usa somente iframe da loja real, e Paginas mostra a URL publica da pagina editada; quando ha dominio proprio verificado com SSL emitido, ele e preferido no preview; CSP libera destinos HTTPS em `frame-src` e limita quem pode emoldurar a loja via `frame-ancestors`
 - **UX do painel tenant:** menu lateral reorganizado por contexto (Visao geral, Loja e aparencia, CRM e vendas, Canais e ajustes); PageBuilder agora separa estrutura, edicao da secao e preview instantaneo/publicado para reduzir confusao na criacao de paginas
+- **Footer profissional editavel:** rodape agora aceita estilo escuro/claro/marca, links uteis, telefone, WhatsApp, e-mail, endereco, horario, texto legal/CNPJ e redes sociais (Instagram, Facebook, TikTok, YouTube e LinkedIn), tudo por campos guiados no PageBuilder
+- **Busca publica mais limpa:** `/busca` monta o filtro de modulo apenas com categorias que possuem produtos publicados no tenant; se a loja nao tem hospedagem, hospedagem nao aparece no select
 
 ---
 
@@ -182,6 +184,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 ### Builder visual & Temas
 - **ThemeEditor** — painel de Aparência atualizado com modelos profissionais de loja, preview ao vivo da loja real, upload de logo, ajuste fino de cores/fontes/menu/cards e ação para aplicar o modelo completo na home sem apagar produtos
 - **PageBuilder** — fluxo em 3 areas (estrutura, formulario da secao e preview), reordenar/toggle/deletar seções, catálogo de 11 tipos de seção, edição linha-a-linha para estatísticas do hero, FAQ e depoimentos, preview instantaneo sem salvar e preview iframe da pagina publica editada
+- **FooterSection** — rodape editavel com colunas profissionais de marca, links, atendimento e redes sociais; suporta variantes escura, clara e com cores da marca
 - **Modelos de Loja editáveis** (`lib/store-templates.ts`) — biblioteca nativa derivada dos projetos em `references/projetos-base/`, agora com 15 modelos separados por tipo: Multiuso, Receptivo, Emissivo e Hospedagem. Foram adicionadas as variantes Ingressos & Atrativos, Transfer Executivo, Excursoes Rodoviarias, Intercambio & Estudos, Hotel Executivo e Temporada Familiar. No onboarding e no painel Aparência o tenant escolhe um modelo, vê preview em tempo real e pode receber uma cópia editável do tema, seções e primeiro produto
 - **SectionRenderer** — Hero, ProductGrid, Banner, Testimonials, FAQ, Newsletter, About, Contact, SearchBar, Map, Footer
 - CSS variables aplicadas em runtime — troca de identidade visual sem rebuild

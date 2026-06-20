@@ -71,6 +71,7 @@ ve preview em tempo real e recebe uma copia editavel de:
 - paginas prontas: home, sobre, FAQ, contato, termos e privacidade;
 - menu/header publico;
 - secoes com estilo do modelo;
+- footer profissional editavel com contato, links, texto legal e redes sociais;
 - primeiro produto com campos ricos;
 - layout de cards e hero.
 

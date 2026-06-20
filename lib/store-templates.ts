@@ -767,6 +767,8 @@ export function materializeStoreTemplateSections(
     }
     if (section.type === "footer") {
       config.company_name = companyName;
+      config.whatsapp = whatsapp || config.whatsapp || "";
+      config.whatsapp_number = whatsapp || config.whatsapp_number || "";
       if (!Array.isArray(config.links)) {
         config.links = defaultFooterLinks();
       }
@@ -893,7 +895,10 @@ function defaultTemplatePages(template: StoreTemplate): StoreTemplatePage[] {
 
 function defaultFooterLinks() {
   return [
+    { label: "Inicio", href: "/" },
     { label: "Produtos", href: "/busca" },
+    { label: "Sobre", href: "/sobre" },
+    { label: "Contato", href: "/contato" },
     { label: "FAQ", href: "/faq" },
     { label: "Termos", href: "/termos" },
     { label: "Privacidade", href: "/privacidade" },
@@ -974,7 +979,32 @@ function contact(): StoreTemplateSection {
 }
 
 function footer(description = "Turismo com qualidade, tecnologia e atendimento humano."): StoreTemplateSection {
-  return { type: "footer", visible: true, config: { company_name: "", description } };
+  return {
+    type: "footer",
+    visible: true,
+    config: {
+      variant: "dark",
+      company_name: "",
+      description,
+      quick_links_title: "Links uteis",
+      contact_title: "Atendimento",
+      social_title: "Redes sociais",
+      email: "",
+      phone: "",
+      whatsapp: "",
+      address: "",
+      hours: "Atendimento sob consulta",
+      legal_text: "",
+      links: defaultFooterLinks(),
+      social: {
+        instagram: "",
+        facebook: "",
+        tiktok: "",
+        youtube: "",
+        linkedin: "",
+      },
+    },
+  };
 }
 
 function productDefaults(
