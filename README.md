@@ -72,6 +72,11 @@ ve preview em tempo real e recebe uma copia editavel de:
 - primeiro produto com campos ricos;
 - layout de cards e hero.
 
+Depois da criacao da loja, o painel `/temas` permite escolher outro modelo,
+previsualizar o resultado ao vivo, salvar apenas o visual ou aplicar o modelo
+completo na home. Aplicar o modelo substitui as secoes da pagina inicial, mas
+mantem os produtos cadastrados.
+
 O produto usa `extra_data` para alimentar o design com informacoes como duracao,
 local, destaques, inclui, nao inclui, roteiro e informacoes importantes.
 

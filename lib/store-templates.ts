@@ -223,6 +223,30 @@ export function getStoreTemplate(id: string | null | undefined): StoreTemplate {
   return STORE_TEMPLATES.find((template) => template.id === id) ?? STORE_TEMPLATES[0];
 }
 
+export function materializeStoreTemplateSections(
+  template: StoreTemplate,
+  opts: { companyName?: string | null; whatsapp?: string | null } = {}
+): StoreTemplateSection[] {
+  return template.sections.map((section) => {
+    const config = JSON.parse(JSON.stringify(section.config ?? {})) as Record<string, unknown>;
+    const companyName = opts.companyName?.trim() || "Minha Loja";
+    const whatsapp = opts.whatsapp ?? "";
+
+    if (section.type === "hero" && typeof config.title === "string") {
+      config.title = config.title.replace("{{company_name}}", companyName);
+    }
+    if (section.type === "contact") {
+      config.whatsapp = whatsapp || config.whatsapp || "";
+      config.whatsapp_number = whatsapp || config.whatsapp_number || "";
+    }
+    if (section.type === "footer") {
+      config.company_name = companyName;
+    }
+
+    return { ...section, config };
+  });
+}
+
 function hero(
   title: string,
   subtitle: string,

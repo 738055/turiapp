@@ -7,7 +7,7 @@ import { createStripeCustomer } from "@/lib/stripe";
 import { slugify } from "@/lib/utils";
 import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/audit";
-import { getStoreTemplate } from "@/lib/store-templates";
+import { getStoreTemplate, materializeStoreTemplateSections } from "@/lib/store-templates";
 
 const schema = z.object({
   company_name: z.string().min(2).max(100),
@@ -133,7 +133,10 @@ export async function POST(req: NextRequest) {
 
   // Add default sections for the template
   if (page) {
-    const sections = buildTemplateSections(selectedTemplate.sections, d.company_name, d.whatsapp_number);
+    const sections = materializeStoreTemplateSections(selectedTemplate, {
+      companyName: d.company_name,
+      whatsapp: d.whatsapp_number,
+    });
     await serviceClient.from("page_sections").insert(
       sections.map((s, i) => ({ ...s, page_id: page.id, order: i }))
     );
@@ -208,23 +211,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ tenantId: tenant.id, slug: tenant.slug });
-}
-
-function buildTemplateSections(
-  sections: Array<{ type: string; visible: boolean; config: Record<string, unknown> }>,
-  companyName: string,
-  whatsapp?: string
-): Array<{ type: string; visible: boolean; config: Record<string, unknown> }> {
-  return sections.map((section) => {
-    const config = JSON.parse(JSON.stringify(section.config ?? {})) as Record<string, unknown>;
-    if (section.type === "hero" && typeof config.title === "string") {
-      config.title = config.title.replace("{{company_name}}", companyName);
-    }
-    if (section.type === "contact") {
-      config.whatsapp = whatsapp ?? config.whatsapp ?? "";
-      config.whatsapp_number = whatsapp ?? config.whatsapp_number ?? "";
-    }
-    if (section.type === "footer") config.company_name = companyName;
-    return { ...section, config };
-  });
 }

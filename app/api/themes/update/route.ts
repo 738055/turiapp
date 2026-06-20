@@ -5,6 +5,7 @@ import { z } from "zod";
 // Note: z.record in Zod v4 requires (keyType, valueType) signature
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
+import { getStoreTemplate, materializeStoreTemplateSections } from "@/lib/store-templates";
 
 const schema = z.object({
   tenant_id: z.string().uuid(),
@@ -19,6 +20,8 @@ const schema = z.object({
   menu_type: z.enum(["top-classic", "top-centered", "top-transparent", "sidebar"]),
   card_type: z.enum(["card-image-large", "card-horizontal", "card-minimal", "card-price-highlight"]),
   logo_url: z.string().url().nullable().optional(),
+  template: z.string().optional(),
+  apply_template: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest) {
@@ -70,6 +73,69 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: "Erro ao salvar tema." }, { status: 500 });
+  }
+
+  if (d.apply_template) {
+    const template = getStoreTemplate(d.template);
+    const [{ data: tenant }, { data: integration }] = await Promise.all([
+      service.from("tenants").select("name").eq("id", d.tenant_id).single(),
+      service.from("tenant_integrations").select("whatsapp_number").eq("tenant_id", d.tenant_id).maybeSingle(),
+    ]);
+
+    const { data: existingHome } = await service
+      .from("pages")
+      .select("id")
+      .eq("tenant_id", d.tenant_id)
+      .eq("is_home", true)
+      .maybeSingle();
+
+    const page =
+      existingHome ??
+      (
+        await service
+          .from("pages")
+          .insert({
+            tenant_id: d.tenant_id,
+            slug: "inicio",
+            title: "Inicio",
+            status: "published",
+            is_home: true,
+            show_in_nav: true,
+            nav_order: 0,
+            template: template.id,
+          })
+          .select("id")
+          .single()
+      ).data;
+
+    if (!page) {
+      return NextResponse.json({ error: "Tema salvo, mas nao foi possivel aplicar o modelo." }, { status: 500 });
+    }
+
+    await service
+      .from("pages")
+      .update({ template: template.id, updated_at: new Date().toISOString() })
+      .eq("id", page.id)
+      .eq("tenant_id", d.tenant_id);
+
+    await service.from("page_sections").delete().eq("page_id", page.id);
+
+    const sections = materializeStoreTemplateSections(template, {
+      companyName: tenant?.name ?? "Minha Loja",
+      whatsapp: integration?.whatsapp_number ?? null,
+    });
+
+    if (sections.length > 0) {
+      await service.from("page_sections").insert(
+        sections.map((section, index) => ({
+          page_id: page.id,
+          type: section.type,
+          order: index,
+          visible: section.visible,
+          config: section.config,
+        }))
+      );
+    }
   }
 
   return NextResponse.json({ ok: true });

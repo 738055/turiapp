@@ -173,9 +173,9 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - Checklist de setup persistente no dashboard (passos concluídos vs. pendentes)
 
 ### Builder visual & Temas
-- **ThemeEditor** — color pickers, 5 fontes, raio de borda, tipo de menu (4 opções), tipo de card (4 opções), upload de logo, preview ao vivo
+- **ThemeEditor** — painel de Aparência atualizado com modelos profissionais de loja, preview ao vivo, upload de logo, ajuste fino de cores/fontes/menu/cards e ação para aplicar o modelo completo na home sem apagar produtos
 - **PageBuilder** — reordenar/toggle/deletar seções, catálogo de 11 tipos de seção, edição linha-a-linha para estatísticas do hero, FAQ e depoimentos
-- **Modelos de Loja editáveis** (`lib/store-templates.ts`) — biblioteca nativa derivada dos projetos em `references/projetos-base/`: Turismo Direto, Receptivo Premium, Agência de Pacotes, Hospedagem Boutique e Resort/Day Use. No onboarding o tenant escolhe um modelo, vê preview em tempo real e recebe uma cópia editável do tema, seções e primeiro produto
+- **Modelos de Loja editáveis** (`lib/store-templates.ts`) — biblioteca nativa derivada dos projetos em `references/projetos-base/`: Turismo Direto, Receptivo Premium, Agência de Pacotes, Hospedagem Boutique e Resort/Day Use. No onboarding e no painel Aparência o tenant escolhe um modelo, vê preview em tempo real e pode receber uma cópia editável do tema, seções e primeiro produto
 - **SectionRenderer** — Hero, ProductGrid, Banner, Testimonials, FAQ, Newsletter, About, Contact, SearchBar, Map, Footer
 - CSS variables aplicadas em runtime — troca de identidade visual sem rebuild
 - Seções configuráveis por formulário (JSONB config por seção)
@@ -279,7 +279,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Relatórios** — cards de desempenho do mês + exportação de PDF white-label
 - **Fidelidade** — regras de pontuação/resgate e ranking de clientes
 - **Páginas** — criar e editar com PageBuilder
-- **Temas** — ThemeEditor com preview ao vivo
+- **Temas** — ThemeEditor com modelos profissionais, preview ao vivo e aplicacao de template na home
 - **Pagamentos** — conectar/desconectar Stripe e Mercado Pago (credenciais criptografadas)
 - **Integrações** — GA4, GTM, Meta Pixel, TikTok Pixel, WhatsApp Business API, webhooks de saída, API pública, scripts customizados
 - **Equipe** — convidar membros por e-mail, definir papel (admin/atendimento), revogar convites, remover membros (Etapa 16)
