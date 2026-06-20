@@ -107,7 +107,7 @@ export function PageBuilder({ page, tenantId }: PageBuilderProps) {
           tenant_id: tenantId,
           page_id: page.id,
           meta: pageMeta,
-          sections: sections.map((s, i) => ({ ...s, order: i })),
+          sections: sections.map((s, i) => ({ ...s, order: i, config: cleanSectionConfig(s.type, s.config) })),
         }),
       });
       router.refresh();
@@ -334,35 +334,29 @@ function SectionConfigForm({
             />
           )}
           {field.type === "list" && (
-            <textarea
-              value={listToText(cfg[field.key])}
-              onChange={(e) => updateField(field.key, textToList(e.target.value))}
+            <StringListEditor
+              value={stringListFromValue(cfg[field.key])}
+              onChange={(value) => updateField(field.key, value)}
               placeholder={field.placeholder}
-              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-24"
+              addLabel="Adicionar item"
             />
           )}
           {field.type === "stat-list" && (
-            <textarea
-              value={statsToText(cfg[field.key])}
-              onChange={(e) => updateField(field.key, textToStats(e.target.value))}
-              placeholder={field.placeholder ?? "24h | suporte\n4.9 | avaliacao media"}
-              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-24"
+            <StatsEditor
+              value={statsFromValue(cfg[field.key])}
+              onChange={(value) => updateField(field.key, value)}
             />
           )}
           {field.type === "faq-list" && (
-            <textarea
-              value={faqToText(cfg[field.key])}
-              onChange={(e) => updateField(field.key, textToFaq(e.target.value))}
-              placeholder={field.placeholder ?? "Pergunta | Resposta"}
-              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-28"
+            <FaqEditor
+              value={faqFromValue(cfg[field.key])}
+              onChange={(value) => updateField(field.key, value)}
             />
           )}
           {field.type === "testimonial-list" && (
-            <textarea
-              value={testimonialsToText(cfg[field.key])}
-              onChange={(e) => updateField(field.key, textToTestimonials(e.target.value))}
-              placeholder={field.placeholder ?? "Nome | 5 | Depoimento"}
-              className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs resize-none h-28"
+            <TestimonialsEditor
+              value={testimonialsFromValue(cfg[field.key])}
+              onChange={(value) => updateField(field.key, value)}
             />
           )}
           {field.type === "select" && (
@@ -503,77 +497,168 @@ function getDefaultConfig(type: SectionType): Record<string, unknown> {
   return defaults[type] ?? {};
 }
 
-function listToText(value: unknown): string {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : "";
+function cleanSectionConfig(type: string, config: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...config };
+  if (Array.isArray(next.stats)) {
+    next.stats = statsFromValue(next.stats).filter((item) => item.value.trim() || item.label.trim());
+  }
+  if (type === "faq" && Array.isArray(next.items)) {
+    next.items = faqFromValue(next.items).filter((item) => item.question.trim() || item.answer.trim());
+  }
+  if (type === "testimonials" && Array.isArray(next.items)) {
+    next.items = testimonialsFromValue(next.items).filter((item) => item.name.trim() || item.text.trim());
+  }
+  return next;
 }
 
-function textToList(value: string): string[] {
-  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+function StringListEditor({
+  value,
+  onChange,
+  placeholder,
+  addLabel,
+}: {
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  addLabel: string;
+}) {
+  const items = value.length ? value : [""];
+  return (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="flex gap-2">
+          <Input
+            value={item}
+            onChange={(event) => onChange(items.map((current, currentIndex) => currentIndex === index ? event.target.value : current))}
+            placeholder={placeholder}
+            className="h-8 text-xs"
+          />
+          <button type="button" onClick={() => onChange(items.filter((_, currentIndex) => currentIndex !== index))} className="h-8 w-8 rounded border text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500">
+            <Trash2 className="mx-auto h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...items, ""])} className="inline-flex items-center gap-1 rounded border border-dashed px-2 py-1 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50">
+        <Plus className="h-3 w-3" />
+        {addLabel}
+      </button>
+    </div>
+  );
 }
 
-function statsToText(value: unknown): string {
-  if (!Array.isArray(value)) return "";
+function StatsEditor({ value, onChange }: { value: { value: string; label: string }[]; onChange: (value: { value: string; label: string }[]) => void }) {
+  const items = value.length ? value : [{ value: "", label: "" }];
+  return (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="grid grid-cols-[90px_minmax(0,1fr)_32px] gap-2">
+          <Input value={item.value} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, value: event.target.value }))} placeholder="24h" className="h-8 text-xs" />
+          <Input value={item.label} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, label: event.target.value }))} placeholder="suporte ao viajante" className="h-8 text-xs" />
+          <button type="button" onClick={() => onChange(items.filter((_, currentIndex) => currentIndex !== index))} className="h-8 rounded border text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500">
+            <Trash2 className="mx-auto h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...items, { value: "", label: "" }])} className="inline-flex items-center gap-1 rounded border border-dashed px-2 py-1 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50">
+        <Plus className="h-3 w-3" />
+        Adicionar estatistica
+      </button>
+    </div>
+  );
+}
+
+function FaqEditor({ value, onChange }: { value: { question: string; answer: string }[]; onChange: (value: { question: string; answer: string }[]) => void }) {
+  const items = value.length ? value : [{ question: "", answer: "" }];
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={index} className="rounded-lg border border-gray-200 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-gray-400">Pergunta {index + 1}</p>
+            <button type="button" onClick={() => onChange(items.filter((_, currentIndex) => currentIndex !== index))} className="text-gray-400 hover:text-red-500">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <Input value={item.question} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, question: event.target.value }))} placeholder="Qual e a politica de cancelamento?" className="mb-2 h-8 text-xs" />
+          <textarea value={item.answer} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, answer: event.target.value }))} placeholder="Responda de forma clara para o cliente." className="h-20 w-full resize-none rounded border border-gray-200 px-2 py-1.5 text-xs" />
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...items, { question: "", answer: "" }])} className="inline-flex items-center gap-1 rounded border border-dashed px-2 py-1 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50">
+        <Plus className="h-3 w-3" />
+        Adicionar pergunta
+      </button>
+    </div>
+  );
+}
+
+function TestimonialsEditor({ value, onChange }: { value: { name: string; rating: number; text: string }[]; onChange: (value: { name: string; rating: number; text: string }[]) => void }) {
+  const items = value.length ? value : [{ name: "", rating: 5, text: "" }];
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={index} className="rounded-lg border border-gray-200 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-gray-400">Depoimento {index + 1}</p>
+            <button type="button" onClick={() => onChange(items.filter((_, currentIndex) => currentIndex !== index))} className="text-gray-400 hover:text-red-500">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_80px] gap-2">
+            <Input value={item.name} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, name: event.target.value }))} placeholder="Nome do cliente" className="h-8 text-xs" />
+            <Input type="number" min={1} max={5} value={item.rating} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, rating: Number(event.target.value) || 5 }))} className="h-8 text-xs" />
+          </div>
+          <textarea value={item.text} onChange={(event) => onChange(updateArrayItem(items, index, { ...item, text: event.target.value }))} placeholder="Texto do depoimento." className="h-20 w-full resize-none rounded border border-gray-200 px-2 py-1.5 text-xs" />
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...items, { name: "", rating: 5, text: "" }])} className="inline-flex items-center gap-1 rounded border border-dashed px-2 py-1 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50">
+        <Plus className="h-3 w-3" />
+        Adicionar depoimento
+      </button>
+    </div>
+  );
+}
+
+function updateArrayItem<T>(items: T[], index: number, value: T): T[] {
+  return items.map((item, currentIndex) => currentIndex === index ? value : item);
+}
+
+function stringListFromValue(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function statsFromValue(value: unknown): { value: string; label: string }[] {
+  if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
-      if (!item || typeof item !== "object") return "";
+      if (!item || typeof item !== "object") return null;
       const stat = item as { value?: unknown; label?: unknown };
-      return `${typeof stat.value === "string" ? stat.value : ""} | ${typeof stat.label === "string" ? stat.label : ""}`.trim();
+      return { value: typeof stat.value === "string" ? stat.value : "", label: typeof stat.label === "string" ? stat.label : "" };
     })
-    .filter((line) => line !== "|")
-    .join("\n");
+    .filter((item): item is { value: string; label: string } => !!item);
 }
 
-function textToStats(value: string): { value: string; label: string }[] {
-  return value
-    .split("\n")
-    .map((line) => {
-      const [statValue, ...rest] = line.split("|");
-      return { value: statValue.trim(), label: rest.join("|").trim() };
-    })
-    .filter((item) => item.value || item.label);
-}
-
-function faqToText(value: unknown): string {
-  if (!Array.isArray(value)) return "";
+function faqFromValue(value: unknown): { question: string; answer: string }[] {
+  if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
-      if (!item || typeof item !== "object") return "";
+      if (!item || typeof item !== "object") return null;
       const faq = item as { question?: unknown; answer?: unknown };
-      return `${typeof faq.question === "string" ? faq.question : ""} | ${typeof faq.answer === "string" ? faq.answer : ""}`.trim();
+      return { question: typeof faq.question === "string" ? faq.question : "", answer: typeof faq.answer === "string" ? faq.answer : "" };
     })
-    .filter((line) => line !== "|")
-    .join("\n");
+    .filter((item): item is { question: string; answer: string } => !!item);
 }
 
-function textToFaq(value: string): { question: string; answer: string }[] {
-  return value
-    .split("\n")
-    .map((line) => {
-      const [question, ...rest] = line.split("|");
-      return { question: question.trim(), answer: rest.join("|").trim() };
-    })
-    .filter((item) => item.question || item.answer);
-}
-
-function testimonialsToText(value: unknown): string {
-  if (!Array.isArray(value)) return "";
+function testimonialsFromValue(value: unknown): { name: string; rating: number; text: string }[] {
+  if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
-      if (!item || typeof item !== "object") return "";
+      if (!item || typeof item !== "object") return null;
       const testimonial = item as { name?: unknown; rating?: unknown; text?: unknown };
-      const rating = typeof testimonial.rating === "number" ? String(testimonial.rating) : "5";
-      return `${typeof testimonial.name === "string" ? testimonial.name : ""} | ${rating} | ${typeof testimonial.text === "string" ? testimonial.text : ""}`.trim();
+      return {
+        name: typeof testimonial.name === "string" ? testimonial.name : "",
+        rating: typeof testimonial.rating === "number" ? testimonial.rating : 5,
+        text: typeof testimonial.text === "string" ? testimonial.text : "",
+      };
     })
-    .filter((line) => line !== "| 5 |")
-    .join("\n");
-}
-
-function textToTestimonials(value: string): { name: string; rating: number; text: string }[] {
-  return value
-    .split("\n")
-    .map((line) => {
-      const [name, rating, ...rest] = line.split("|");
-      return { name: name.trim(), rating: Number(rating?.trim()) || 5, text: rest.join("|").trim() };
-    })
-    .filter((item) => item.name || item.text);
+    .filter((item): item is { name: string; rating: number; text: string } => !!item);
 }

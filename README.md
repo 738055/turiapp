@@ -83,7 +83,8 @@ O produto usa `extra_data` para alimentar o design com informacoes como duracao,
 local, destaques, inclui, nao inclui, roteiro, politica de cancelamento,
 idiomas do guia, galeria adicional e dados de hospedagem
 (capacidade/quartos/banheiros). Esses campos aparecem no card, na busca e na
-pagina de detalhe do produto.
+pagina de detalhe do produto. Campos de lista e roteiro sao editados por itens
+guiados no painel, evitando sintaxe manual por linha.
 
 ## Deploy
 

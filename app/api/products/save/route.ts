@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
   const d = parsed.data;
   const service = createServiceClient();
 
+  if (d.sale_mode === "booking") {
+    if (!d.rates.length) {
+      return NextResponse.json({ error: "Adicione pelo menos uma tarifa para vender com reserva online." }, { status: 400 });
+    }
+    if (d.rates.some((rate) => rate.price <= 0)) {
+      return NextResponse.json({ error: "Toda tarifa de reserva online precisa ter preco maior que zero." }, { status: 400 });
+    }
+  }
+
   // Verify user is member of this tenant
   const { data: membership } = await service
     .from("tenant_members")

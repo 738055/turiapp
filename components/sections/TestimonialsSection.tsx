@@ -15,7 +15,7 @@ interface TestimonialsConfig {
 
 export function TestimonialsSection({ section }: { section: PageSection; theme: Theme | null; tenantId: string }) {
   const cfg = (section.config ?? {}) as TestimonialsConfig;
-  const items = cfg.items ?? [];
+  const items = (cfg.items ?? []).filter((item) => item.name?.trim() || item.text?.trim());
 
   return (
     <section className="relative overflow-hidden bg-[var(--color-secondary)] px-4 py-20 text-white sm:px-6 lg:px-8">

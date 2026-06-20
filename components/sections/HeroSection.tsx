@@ -42,8 +42,9 @@ function MarketplaceHero({ cfg }: { cfg: HeroConfig }) {
   const imageUrl = cfg.image_url || "/storefront/receptivo/hero-cataratas.jpg";
   const title = cfg.title || "Conheca experiencias locais sem improviso";
   const subtitle = cfg.subtitle || "Passeios, transfers e pacotes com atendimento local, confirmacao clara e suporte do inicio ao fim.";
-  const stats = cfg.stats?.length
-    ? cfg.stats
+  const configuredStats = (cfg.stats ?? []).filter((stat) => stat.value?.trim() || stat.label?.trim());
+  const stats = configuredStats.length
+    ? configuredStats
     : [
         { value: "24h", label: "suporte ao viajante" },
         { value: "4.9", label: "avaliacao media" },
@@ -125,7 +126,7 @@ function MarketplaceHero({ cfg }: { cfg: HeroConfig }) {
 
 function EditorialHero({ cfg }: { cfg: HeroConfig }) {
   const imageUrl = cfg.image_url || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80";
-  const stats = cfg.stats ?? [];
+  const stats = (cfg.stats ?? []).filter((stat) => stat.value?.trim() || stat.label?.trim());
 
   return (
     <section className="relative flex min-h-[86vh] items-end overflow-hidden bg-[#0f1e16]">

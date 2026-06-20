@@ -11,6 +11,7 @@ interface FAQConfig { title?: string; items?: FAQItem[] }
 export function FAQSection({ section }: { section: PageSection; theme: Theme | null; tenantId: string }) {
   const cfg = (section.config ?? {}) as FAQConfig;
   const [open, setOpen] = useState<number | null>(null);
+  const items = (cfg.items ?? []).filter((item) => item.question?.trim() || item.answer?.trim());
   return (
     <section className="w-full bg-white px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
@@ -21,7 +22,7 @@ export function FAQSection({ section }: { section: PageSection; theme: Theme | n
           </div>
         )}
       <div className="space-y-3">
-        {(cfg.items ?? []).map((item, i) => (
+        {items.map((item, i) => (
           <div key={i} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-[var(--color-primary)]/35">
             <button
               className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-bold text-gray-900 hover:bg-gray-50"

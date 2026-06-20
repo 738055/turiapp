@@ -57,17 +57,23 @@ interface RateForm {
   occupancy_max: string;
 }
 
+interface ItineraryStepForm {
+  title: string;
+  description: string;
+  time: string;
+}
+
 interface ProductExtraForm {
   duration: string;
   location: string;
-  highlights: string;
-  included: string;
-  not_included: string;
-  itinerary: string;
+  highlights: string[];
+  included: string[];
+  not_included: string[];
+  itinerary: ItineraryStepForm[];
   important_info: string;
   cancellation_policy: string;
-  guide_languages: string;
-  gallery: string;
+  guide_languages: string[];
+  gallery: string[];
   capacity: string;
   bedrooms: string;
   bathrooms: string;
@@ -107,14 +113,14 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
     return {
       duration: stringValue(data.duration),
       location: stringValue(data.location),
-      highlights: linesFromArray(data.highlights),
-      included: linesFromArray(data.included),
-      not_included: linesFromArray(data.not_included),
-      itinerary: itineraryToText(data.itinerary),
+      highlights: arrayFromValue(data.highlights),
+      included: arrayFromValue(data.included),
+      not_included: arrayFromValue(data.not_included),
+      itinerary: itineraryFromValue(data.itinerary),
       important_info: stringValue(data.important_info),
       cancellation_policy: stringValue(data.cancellation_policy),
-      guide_languages: linesFromArray(data.guide_languages),
-      gallery: linesFromArray(data.gallery),
+      guide_languages: arrayFromValue(data.guide_languages),
+      gallery: arrayFromValue(data.gallery),
       capacity: stringValue(data.capacity),
       bedrooms: stringValue(data.bedrooms),
       bathrooms: stringValue(data.bathrooms),
@@ -143,7 +149,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function updateExtra(field: keyof ProductExtraForm, value: string) {
+  function updateExtra<K extends keyof ProductExtraForm>(field: K, value: ProductExtraForm[K]) {
     setExtra((current) => ({ ...current, [field]: value }));
   }
 
@@ -178,6 +184,16 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
 
   async function handleSave() {
     setError(null);
+    if (form.sale_mode === "booking") {
+      if (!rates.length) {
+        setError("Adicione pelo menos uma tarifa para publicar com reserva online.");
+        return;
+      }
+      if (rates.some((rate) => (parseFloat(rate.price) || 0) <= 0)) {
+        setError("Toda tarifa de reserva online precisa ter preco maior que zero.");
+        return;
+      }
+    }
     startTransition(async () => {
       const res = await fetch("/api/products/save", {
         method: "POST",
@@ -342,12 +358,20 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <TextListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder={"Transfer incluso\nGuia local\nCancelamento facilitado"} />
-            <TextListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder={"Transporte\nIngresso\nAcompanhamento"} />
-            <TextListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder={"Alimentacao\nDespesas pessoais"} />
-            <TextListField label="Informacoes importantes" value={extra.important_info} onChange={(value) => updateExtra("important_info", value)} placeholder="Documentos, regras de cancelamento, ponto de encontro..." />
-            <TextListField label="Idiomas do guia" value={extra.guide_languages} onChange={(value) => updateExtra("guide_languages", value)} placeholder={"Portugues\nEspanhol\nIngles"} />
-            <TextListField label="Galeria adicional por URL" value={extra.gallery} onChange={(value) => updateExtra("gallery", value)} placeholder={"https://...\nhttps://..."} />
+            <ListField label="Destaques" value={extra.highlights} onChange={(value) => updateExtra("highlights", value)} placeholder="Transfer incluso" addLabel="Adicionar destaque" />
+            <ListField label="Inclui" value={extra.included} onChange={(value) => updateExtra("included", value)} placeholder="Transporte" addLabel="Adicionar item incluso" />
+            <ListField label="Nao inclui" value={extra.not_included} onChange={(value) => updateExtra("not_included", value)} placeholder="Alimentacao" addLabel="Adicionar item nao incluso" />
+            <div className="space-y-1.5">
+              <Label>Informacoes importantes</Label>
+              <textarea
+                value={extra.important_info}
+                onChange={(e) => updateExtra("important_info", e.target.value)}
+                className="h-24 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
+                placeholder="Documentos, ponto de encontro, idade minima, regras de embarque..."
+              />
+            </div>
+            <ListField label="Idiomas do guia" value={extra.guide_languages} onChange={(value) => updateExtra("guide_languages", value)} placeholder="Portugues" addLabel="Adicionar idioma" />
+            <ListField label="Galeria adicional por URL" value={extra.gallery} onChange={(value) => updateExtra("gallery", value)} placeholder="https://..." addLabel="Adicionar foto por URL" />
           </div>
           <div className="space-y-1.5">
             <Label>Politica de cancelamento</Label>
@@ -358,16 +382,7 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
               placeholder="Ex: Cancelamento sem custo ate 24h antes do passeio."
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>Roteiro</Label>
-            <textarea
-              value={extra.itinerary}
-              onChange={(e) => updateExtra("itinerary", e.target.value)}
-              className="h-28 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
-              placeholder={"Chegada | Recepcao e orientacoes iniciais\nRoteiro principal | Experiencia conforme descricao\nRetorno | Encerramento e suporte final"}
-            />
-            <p className="text-xs text-gray-400">Use uma etapa por linha no formato: Titulo | Descricao</p>
-          </div>
+          <ItineraryField value={extra.itinerary} onChange={(value) => updateExtra("itinerary", value)} />
         </CardContent>
       </Card>
 
@@ -549,17 +564,129 @@ export function ProductForm({ tenantId, defaultWhatsapp, mode, initialProduct, b
   );
 }
 
-function TextListField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+function ListField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  addLabel,
+}: {
+  label: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  addLabel: string;
+}) {
+  const items = value.length ? value : [""];
+
+  function updateItem(index: number, itemValue: string) {
+    const next = [...items];
+    next[index] = itemValue;
+    onChange(next);
+  }
+
+  function removeItem(index: number) {
+    const next = items.filter((_, currentIndex) => currentIndex !== index);
+    onChange(next.length ? next : []);
+  }
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <Label>{label}</Label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-24 w-full resize-none rounded-[var(--radius)] border border-gray-200 px-3 py-2 text-sm"
-        placeholder={placeholder}
-      />
-      <p className="text-xs text-gray-400">Uma informacao por linha.</p>
+      <div className="space-y-2">
+        {items.map((item, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={item}
+              onChange={(e) => updateItem(index, e.target.value)}
+              placeholder={placeholder}
+              className="h-9 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => removeItem(index)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-gray-200 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+              aria-label={`Remover ${label}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange([...items, ""])}
+        className="inline-flex items-center gap-1.5 rounded border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {addLabel}
+      </button>
+    </div>
+  );
+}
+
+function ItineraryField({ value, onChange }: { value: ItineraryStepForm[]; onChange: (value: ItineraryStepForm[]) => void }) {
+  const steps = value.length ? value : [{ title: "", description: "", time: "" }];
+
+  function updateStep(index: number, field: keyof ItineraryStepForm, fieldValue: string) {
+    const next = [...steps];
+    next[index] = { ...next[index], [field]: fieldValue };
+    onChange(next);
+  }
+
+  function removeStep(index: number) {
+    const next = steps.filter((_, currentIndex) => currentIndex !== index);
+    onChange(next.length ? next : []);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>Roteiro</Label>
+        <p className="mt-1 text-xs text-gray-400">Cadastre uma etapa por vez. O layout usa isso para montar a linha do tempo da pagina do produto.</p>
+      </div>
+      <div className="space-y-3">
+        {steps.map((step, index) => (
+          <div key={index} className="relative rounded-lg border border-gray-200 bg-white p-3">
+            <button
+              type="button"
+              onClick={() => removeStep(index)}
+              className="absolute right-2 top-2 text-gray-400 transition hover:text-red-500"
+              aria-label="Remover etapa"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+            <p className="mb-3 text-xs font-semibold uppercase text-gray-400">Etapa {index + 1}</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
+              <div className="space-y-1">
+                <Label className="text-xs">Horario / periodo</Label>
+                <Input value={step.time} onChange={(e) => updateStep(index, "time", e.target.value)} placeholder="08:00" className="h-8 text-xs" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Titulo da etapa</Label>
+                <Input value={step.title} onChange={(e) => updateStep(index, "title", e.target.value)} placeholder="Chegada e orientacoes" className="h-8 text-xs" />
+              </div>
+            </div>
+            <div className="mt-3 space-y-1">
+              <Label className="text-xs">Descricao</Label>
+              <textarea
+                value={step.description}
+                onChange={(e) => updateStep(index, "description", e.target.value)}
+                className="h-20 w-full resize-none rounded border border-gray-200 px-3 py-2 text-xs"
+                placeholder="Explique o que acontece nesta etapa."
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange([...steps, { title: "", description: "", time: "" }])}
+        className="inline-flex items-center gap-1.5 rounded border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Adicionar etapa
+      </button>
     </div>
   );
 }
@@ -568,50 +695,56 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function linesFromArray(value: unknown): string {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : stringValue(value);
+function arrayFromValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
 }
 
-function linesToArray(value: string): string[] {
-  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+function cleanArray(value: string[]): string[] {
+  return value.map((item) => item.trim()).filter(Boolean);
 }
 
-function itineraryToText(value: unknown): string {
-  if (!Array.isArray(value)) return "";
+function itineraryFromValue(value: unknown): ItineraryStepForm[] {
+  if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
       if (!item || typeof item !== "object") return "";
-      const row = item as { title?: unknown; description?: unknown };
+      const row = item as { title?: unknown; description?: unknown; time?: unknown };
       const title = typeof row.title === "string" ? row.title : "";
       const description = typeof row.description === "string" ? row.description : "";
-      return title || description ? `${title} | ${description}` : "";
+      const time = typeof row.time === "string" ? row.time : "";
+      return title || description || time ? { title, description, time } : null;
     })
-    .filter(Boolean)
-    .join("\n");
+    .filter((item): item is ItineraryStepForm => !!item);
 }
 
-function textToItinerary(value: string): { title: string; description: string }[] {
+function cleanItinerary(value: ItineraryStepForm[]): ItineraryStepForm[] {
   return value
-    .split("\n")
-    .map((line) => {
-      const [title, ...rest] = line.split("|");
-      return { title: title.trim(), description: rest.join("|").trim() };
-    })
-    .filter((item) => item.title || item.description);
+    .map((item) => ({
+      title: item.title.trim(),
+      description: item.description.trim(),
+      time: item.time.trim(),
+    }))
+    .filter((item) => item.title || item.description || item.time);
 }
 
 function extraToPayload(extra: ProductExtraForm): Record<string, unknown> {
   return {
     duration: extra.duration.trim(),
     location: extra.location.trim(),
-    highlights: linesToArray(extra.highlights),
-    included: linesToArray(extra.included),
-    not_included: linesToArray(extra.not_included),
-    itinerary: textToItinerary(extra.itinerary),
+    highlights: cleanArray(extra.highlights),
+    included: cleanArray(extra.included),
+    not_included: cleanArray(extra.not_included),
+    itinerary: cleanItinerary(extra.itinerary),
     important_info: extra.important_info.trim(),
     cancellation_policy: extra.cancellation_policy.trim(),
-    guide_languages: linesToArray(extra.guide_languages),
-    gallery: linesToArray(extra.gallery),
+    guide_languages: cleanArray(extra.guide_languages),
+    gallery: cleanArray(extra.gallery),
     capacity: extra.capacity.trim(),
     bedrooms: extra.bedrooms.trim(),
     bathrooms: extra.bathrooms.trim(),
