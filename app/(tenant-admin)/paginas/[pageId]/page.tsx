@@ -32,6 +32,15 @@ export default async function PageEditorPage({
     .eq("tenant_id", membership!.tenant_id)
     .single();
 
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("slug")
+    .eq("id", membership!.tenant_id)
+    .single();
+
+  const platformHost = process.env.NEXT_PUBLIC_PLATFORM_HOST ?? process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? "turiapp.com.br";
+  const previewUrl = tenant?.slug ? `https://${tenant.slug}.${platformHost}` : null;
+
   return (
     <div className="space-y-4">
       <div>
@@ -40,7 +49,7 @@ export default async function PageEditorPage({
           Adicione e configure seções da sua página
         </p>
       </div>
-      <PageBuilder page={page} theme={theme} tenantId={membership!.tenant_id} />
+      <PageBuilder page={page} theme={theme} tenantId={membership!.tenant_id} previewUrl={previewUrl} />
     </div>
   );
 }

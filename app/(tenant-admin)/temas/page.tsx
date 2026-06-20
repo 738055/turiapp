@@ -17,12 +17,7 @@ export default async function TemasPage() {
     .eq("tenant_id", membership!.tenant_id)
     .single();
 
-  const [{ data: integrations }, { data: tenant }, { data: homePage }] = await Promise.all([
-    supabase
-      .from("tenant_integrations")
-      .select("whatsapp_number")
-      .eq("tenant_id", membership!.tenant_id)
-      .single(),
+  const [{ data: tenant }, { data: homePage }] = await Promise.all([
     supabase
       .from("tenants")
       .select("name, slug")
@@ -50,9 +45,6 @@ export default async function TemasPage() {
       <ThemeEditor
         tenantId={membership!.tenant_id}
         initialTheme={theme}
-        whatsappNumber={integrations?.whatsapp_number ?? null}
-        tenantName={tenant?.name ?? null}
-        tenantSlug={tenant?.slug ?? null}
         initialTemplate={homePage?.template ?? null}
         storeUrl={storeUrl}
       />

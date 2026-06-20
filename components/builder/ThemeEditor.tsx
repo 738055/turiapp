@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -26,9 +25,6 @@ import {
 interface ThemeEditorProps {
   tenantId: string;
   initialTheme: Theme | null;
-  whatsappNumber: string | null;
-  tenantName?: string | null;
-  tenantSlug?: string | null;
   initialTemplate?: string | null;
   storeUrl?: string | null;
 }
@@ -76,9 +72,6 @@ const RADIUS_OPTIONS = [
 export function ThemeEditor({
   tenantId,
   initialTheme,
-  whatsappNumber,
-  tenantName,
-  tenantSlug,
   initialTemplate,
   storeUrl,
 }: ThemeEditorProps) {
@@ -102,7 +95,6 @@ export function ThemeEditor({
   });
 
   const selectedTemplate = useMemo(() => getStoreTemplate(selectedTemplateId), [selectedTemplateId]);
-  const previewName = tenantName?.trim() || tenantSlug || "Minha Loja";
 
   function update<K extends keyof EditableTheme>(key: K, value: EditableTheme[K]) {
     setTheme((current) => ({ ...current, [key]: value }));
@@ -351,32 +343,9 @@ export function ThemeEditor({
         </div>
       </div>
 
-      <aside className="hidden xl:block">
-        <div className="sticky top-6 space-y-3">
-          <TemplatePreview
-            template={selectedTemplate}
-            theme={theme}
-            tenantName={previewName}
-            logoUrl={logoUrl}
-            whatsappNumber={whatsappNumber}
-          />
-          <Badge variant="secondary" className="text-xs">
-            Preview ao vivo
-          </Badge>
-          {storeUrl && (
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
-                <span className="text-xs font-semibold text-gray-500">Loja real</span>
-                <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-600">Abrir</a>
-              </div>
-              <iframe
-                key={previewNonce}
-                src={`${storeUrl}${storeUrl.includes("?") ? "&" : "?"}preview=${previewNonce}`}
-                className="h-[520px] w-full"
-                title="Preview da loja real"
-              />
-            </div>
-          )}
+      <aside>
+        <div className="space-y-3 xl:sticky xl:top-6">
+          <RealStorePreview storeUrl={storeUrl} nonce={previewNonce} templateName={selectedTemplate.name} />
         </div>
       </aside>
     </div>
@@ -416,194 +385,51 @@ function OptionGroup({
   );
 }
 
-function TemplatePreview({
-  template,
-  theme,
-  tenantName,
-  logoUrl,
-  whatsappNumber,
+function RealStorePreview({
+  storeUrl,
+  nonce,
+  templateName,
 }: {
-  template: StoreTemplate;
-  theme: EditableTheme;
-  tenantName: string;
-  logoUrl: string | null;
-  whatsappNumber: string | null;
+  storeUrl?: string | null;
+  nonce: number;
+  templateName: string;
 }) {
-  const hero = template.sections.find((section) => section.type === "hero")?.config ?? {};
-  const title = stringValue(hero.title, template.productDefaults.title);
-  const subtitle = stringValue(hero.subtitle, template.description);
-  const eyebrow = stringValue(hero.eyebrow, template.name);
-  const image = stringValue(hero.image_url, heroImage(template));
-  const stats = Array.isArray(hero.stats) ? hero.stats.slice(0, 3) : [];
-  const productLabel =
-    template.category === "hospedagem"
-      ? "Suite vista jardim"
-      : template.category === "emissivo"
-      ? "Pacote Gramado"
-      : "Cataratas com transfer";
-
-  const cssVars = {
-    "--color-primary": theme.primary_color,
-    "--color-secondary": theme.secondary_color,
-    "--color-accent": theme.accent_color,
-    "--color-background": theme.background_color,
-    "--color-text": theme.text_color,
-    "--radius": theme.border_radius,
-    "--font-heading": theme.font_heading,
-    "--font-body": theme.font_body,
-  } as CSSProperties;
+  const previewSrc = storeUrl ? withPreviewNonce(storeUrl, nonce) : null;
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs text-gray-500">Pre-visualizacao</CardTitle>
-          <span className="text-[10px] font-medium uppercase text-gray-400">{template.name}</span>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-sm">Loja real</CardTitle>
+          <Badge variant="secondary" className="text-xs">
+            Preview ao vivo
+          </Badge>
         </div>
+        <p className="text-xs text-gray-500">Modelo atual: {templateName}. Salve para recarregar a loja publicada.</p>
       </CardHeader>
       <CardContent className="p-0">
-        <div style={cssVars} className="bg-[var(--color-background)] text-[var(--color-text)]">
-          <div className="flex items-center gap-1.5 border-b border-gray-100 bg-white px-3 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-            <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-            <span className="ml-2 truncate rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-400">
-              {tenantName.toLowerCase().replace(/\s+/g, "-")}.turiapp.com.br
-            </span>
+        {previewSrc ? (
+          <>
+            <div className="flex items-center justify-between border-y border-gray-100 bg-gray-50 px-3 py-2">
+              <span className="truncate text-xs text-gray-500">{storeUrl}</span>
+              <a href={previewSrc} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-600">
+                Abrir
+              </a>
+            </div>
+            <iframe
+              key={nonce}
+              src={previewSrc}
+              className="h-[720px] w-full bg-white"
+              title="Preview da loja real"
+            />
+          </>
+        ) : (
+          <div className="px-4 py-10 text-center text-sm text-gray-500">
+            Configure o slug da loja para visualizar o site real aqui.
           </div>
-
-          <div
-            className="relative min-h-[290px] overflow-hidden bg-cover bg-center"
-            style={{ backgroundImage: `linear-gradient(120deg, ${theme.secondary_color}f2, ${theme.primary_color}66), url(${image})` }}
-          >
-            <div
-              className={`relative z-10 flex items-center px-5 py-4 text-white ${
-                theme.menu_type === "top-centered" ? "justify-center gap-5" : "justify-between"
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoUrl} alt="" className="h-7 w-7 rounded bg-white object-contain p-0.5" />
-                ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded bg-white/15 text-[10px] font-bold">
-                    {tenantName.slice(0, 2).toUpperCase()}
-                  </span>
-                )}
-                <span className="truncate text-sm font-bold" style={{ fontFamily: theme.font_heading }}>
-                  {tenantName}
-                </span>
-              </div>
-              {theme.menu_type !== "sidebar" && (
-                <div className="flex gap-2 text-[10px] font-medium text-white/80">
-                  <span>Inicio</span>
-                  <span>Produtos</span>
-                  <span>Contato</span>
-                </div>
-              )}
-            </div>
-
-            <div className="relative z-10 px-5 pb-7 pt-7 text-white">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">{eyebrow}</p>
-              <h2 className="max-w-sm text-2xl font-bold leading-tight" style={{ fontFamily: theme.font_heading }}>
-                {title}
-              </h2>
-              <p className="mt-2 max-w-sm text-xs leading-relaxed text-white/80">{subtitle}</p>
-              <div
-                className="mt-4 inline-flex px-4 py-2 text-xs font-bold"
-                style={{ backgroundColor: theme.accent_color, borderRadius: theme.border_radius }}
-              >
-                Ver produtos
-              </div>
-            </div>
-
-            {stats.length > 0 && (
-              <div className="absolute bottom-3 left-5 right-5 z-10 grid grid-cols-3 gap-2">
-                {stats.map((item, index) => {
-                  const stat = item as { value?: unknown; label?: unknown };
-                  return (
-                    <div key={index} className="rounded-md bg-white/90 p-2 text-gray-900 shadow-sm">
-                      <p className="text-xs font-bold">{stringValue(stat.value, "24h")}</p>
-                      <p className="truncate text-[9px] text-gray-500">{stringValue(stat.label, "suporte")}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 p-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-gray-400">Destaques</p>
-                <h3 className="text-sm font-bold" style={{ fontFamily: theme.font_heading }}>
-                  {template.category === "hospedagem" ? "Acomodacoes" : "Produtos em destaque"}
-                </h3>
-              </div>
-              {whatsappNumber && <span className="text-[10px] font-medium text-green-600">WhatsApp ativo</span>}
-            </div>
-            <div className={theme.card_type === "card-horizontal" ? "space-y-2" : "grid grid-cols-2 gap-2"}>
-              {[0, 1].map((item) => (
-                <PreviewProductCard
-                  key={item}
-                  cardType={theme.card_type}
-                  radius={theme.border_radius}
-                  primaryColor={theme.primary_color}
-                  title={productLabel}
-                  template={template}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
-  );
-}
-
-function PreviewProductCard({
-  cardType,
-  radius,
-  primaryColor,
-  title,
-  template,
-}: {
-  cardType: CardType;
-  radius: string;
-  primaryColor: string;
-  title: string;
-  template: StoreTemplate;
-}) {
-  const imageClass = cardType === "card-horizontal" ? "h-20 w-24 flex-shrink-0" : "h-24 w-full";
-  const content = (
-    <div className="min-w-0 p-2">
-      <p className="truncate text-[11px] font-semibold text-gray-800">{title}</p>
-      <p className="mt-1 truncate text-[10px] text-gray-400">{template.productDefaults.extra_data.duration as string}</p>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-bold" style={{ color: primaryColor }}>
-          R$ 199
-        </span>
-        {cardType === "card-price-highlight" && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500">ver</span>}
-      </div>
-    </div>
-  );
-
-  if (cardType === "card-minimal") {
-    return (
-      <div className="border bg-white p-3 shadow-sm" style={{ borderRadius: radius }}>
-        {content}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`overflow-hidden border bg-white shadow-sm ${cardType === "card-horizontal" ? "flex" : ""}`}
-      style={{ borderRadius: radius }}
-    >
-      <div className={`${imageClass} bg-cover bg-center`} style={{ backgroundImage: `url(${heroImage(template)})` }} />
-      {content}
-    </div>
   );
 }
 
@@ -614,4 +440,8 @@ function heroImage(template: StoreTemplate): string {
 
 function stringValue(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function withPreviewNonce(url: string, nonce: number): string {
+  return `${url}${url.includes("?") ? "&" : "?"}preview=${nonce}`;
 }

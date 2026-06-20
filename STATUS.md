@@ -26,6 +26,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve apenas a raiz `/` para a rota interna `/storefront` e mantém `/busca`, `/produto/...` etc no roteamento público normal; painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
 - **Storefront por modelos reais:** templates agora criam loja completa editavel (home, sobre, FAQ, contato, termos, privacidade e menu/header publico), e cards, busca e pagina de produto reutilizam os estilos dos projetos em `references/projetos-base/` (marketplace/receptivo e editorial/hospedagem), com galeria, inclusos, nao-inclusos, roteiro, politica, tarifas e placeholders visuais profissionais alimentados pelo CRUD do tenant
 - **Edicao guiada para tenants:** listas do produto (destaques, inclui, nao inclui, idiomas, galeria) e roteiro agora usam adicionar/remover item; FAQ, depoimentos e estatisticas do PageBuilder tambem usam campos estruturados, sem sintaxe manual por linha. Produto em modo reserva online nao salva sem tarifa valida
+- **Preview real no painel:** Aparencia usa somente iframe da loja real, e Paginas mostra a URL publica da pagina editada; CSP libera esses iframes por `frame-src` e limita quem pode emoldurar a loja via `frame-ancestors`
 
 ---
 
@@ -39,7 +40,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Criptografia AES-256-GCM** para credenciais de pagamento dos tenants (`lib/crypto.ts`)
 - **Rate limiting in-memory** com janela deslizante, pronto para upgrade Upstash Redis (`lib/rate-limit.ts`) — ver Etapa 28: insuficiente sozinho contra abuso distribuído em produção real
 - **Audit logs** em todas as ações críticas, incluindo exportação de CSV de reservas (`lib/audit.ts`)
-- **CSP completo + HSTS + X-Frame-Options** configurados em `next.config.ts`
+- **CSP completo + HSTS + `frame-ancestors` restritivo** configurados em `next.config.ts`; previews do painel usam `frame-src` limitado aos hosts da plataforma
 - **54 testes automatizados** (vitest) cobrindo crypto, rate-limit, email templates, lógica de negócio e códigos de backup MFA
 
 ### Segurança — hardening de privilégio e dados (migration 012)
@@ -177,8 +178,8 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - Checklist de setup persistente no dashboard (passos concluídos vs. pendentes)
 
 ### Builder visual & Temas
-- **ThemeEditor** — painel de Aparência atualizado com modelos profissionais de loja, preview ao vivo, upload de logo, ajuste fino de cores/fontes/menu/cards e ação para aplicar o modelo completo na home sem apagar produtos
-- **PageBuilder** — reordenar/toggle/deletar seções, catálogo de 11 tipos de seção, edição linha-a-linha para estatísticas do hero, FAQ e depoimentos
+- **ThemeEditor** — painel de Aparência atualizado com modelos profissionais de loja, preview ao vivo da loja real, upload de logo, ajuste fino de cores/fontes/menu/cards e ação para aplicar o modelo completo na home sem apagar produtos
+- **PageBuilder** — reordenar/toggle/deletar seções, catálogo de 11 tipos de seção, edição linha-a-linha para estatísticas do hero, FAQ e depoimentos, com preview iframe da pagina publica editada
 - **Modelos de Loja editáveis** (`lib/store-templates.ts`) — biblioteca nativa derivada dos projetos em `references/projetos-base/`: Turismo Direto, Receptivo Premium, Agência de Pacotes, Hospedagem Boutique e Resort/Day Use. No onboarding e no painel Aparência o tenant escolhe um modelo, vê preview em tempo real e pode receber uma cópia editável do tema, seções e primeiro produto
 - **SectionRenderer** — Hero, ProductGrid, Banner, Testimonials, FAQ, Newsletter, About, Contact, SearchBar, Map, Footer
 - CSS variables aplicadas em runtime — troca de identidade visual sem rebuild

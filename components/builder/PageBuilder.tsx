@@ -38,11 +38,13 @@ interface PageBuilderProps {
   page: Page & { sections: PageSection[] };
   theme: Theme | null;
   tenantId: string;
+  previewUrl?: string | null;
 }
 
-export function PageBuilder({ page, tenantId }: PageBuilderProps) {
+export function PageBuilder({ page, tenantId, previewUrl }: PageBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [previewNonce, setPreviewNonce] = useState(() => Date.now());
   const [sections, setSections] = useState<PageSection[]>(
     [...(page.sections ?? [])].sort((a, b) => a.order - b.order)
   );
@@ -100,7 +102,7 @@ export function PageBuilder({ page, tenantId }: PageBuilderProps) {
 
   async function handleSave() {
     startTransition(async () => {
-      await fetch("/api/pages/save", {
+      const res = await fetch("/api/pages/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,14 +112,15 @@ export function PageBuilder({ page, tenantId }: PageBuilderProps) {
           sections: sections.map((s, i) => ({ ...s, order: i, config: cleanSectionConfig(s.type, s.config) })),
         }),
       });
+      if (res.ok) setPreviewNonce(Date.now());
       router.refresh();
     });
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
       {/* Section list */}
-      <div className="lg:col-span-2 space-y-3">
+      <div className="space-y-3">
         {sections.map((section) => (
           <SectionCard
             key={section.id}
@@ -226,9 +229,76 @@ export function PageBuilder({ page, tenantId }: PageBuilderProps) {
           <Save className="h-4 w-4 mr-1" />
           {isPending ? "Salvando..." : "Salvar página"}
         </Button>
+        <RealPagePreview
+          baseUrl={previewUrl}
+          pageTitle={pageMeta.title}
+          slug={page.slug}
+          isHome={page.is_home}
+          nonce={previewNonce}
+        />
       </div>
     </div>
   );
+}
+
+function RealPagePreview({
+  baseUrl,
+  pageTitle,
+  slug,
+  isHome,
+  nonce,
+}: {
+  baseUrl?: string | null;
+  pageTitle: string;
+  slug: string;
+  isHome: boolean;
+  nonce: number;
+}) {
+  const previewSrc = baseUrl ? buildPreviewUrl(baseUrl, slug, isHome, nonce) : null;
+  const publicPath = isHome ? "/" : `/${slug}`;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-sm">Preview da pagina real</CardTitle>
+          <Badge variant="secondary" className="text-xs">
+            {publicPath}
+          </Badge>
+        </div>
+        <p className="text-xs text-gray-500">{pageTitle || "Pagina sem titulo"} - salve para atualizar a loja.</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {previewSrc ? (
+          <>
+            <div className="flex items-center justify-between border-y border-gray-100 bg-gray-50 px-3 py-2">
+              <span className="truncate text-xs text-gray-500">{previewSrc.replace(/\?preview=.*/, "")}</span>
+              <a href={previewSrc} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-600">
+                Abrir
+              </a>
+            </div>
+            <iframe
+              key={nonce}
+              src={previewSrc}
+              className="h-[680px] w-full bg-white"
+              title={`Preview real de ${pageTitle}`}
+            />
+          </>
+        ) : (
+          <div className="px-4 py-10 text-center text-sm text-gray-500">
+            Configure o slug da loja para visualizar a pagina real aqui.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildPreviewUrl(baseUrl: string, slug: string, isHome: boolean, nonce: number): string {
+  const cleanBase = baseUrl.replace(/\/$/, "");
+  const cleanSlug = slug.replace(/^\/+|\/+$/g, "");
+  const path = isHome || !cleanSlug ? "" : `/${cleanSlug}`;
+  return `${cleanBase}${path}?preview=${nonce}`;
 }
 
 function SectionCard({
