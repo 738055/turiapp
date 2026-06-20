@@ -177,7 +177,7 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
       banner("Cote viagens sob medida", "Capture leads para roteiros personalizados e grupos fechados.", "Solicitar roteiro", "/contato", "#172554"),
       faq([
         { question: "Posso editar o roteiro do pacote?", answer: "Sim. No cadastro do produto voce edita roteiro, inclusos, nao inclusos e informacoes importantes." },
-        { question: "Funciona para venda por WhatsApp?", answer: "Sim. O modelo foi pensado para WhatsApp ou reserva online, conforme o plano do tenant." },
+        { question: "Funciona para venda por WhatsApp?", answer: "Sim. O modelo foi pensado para WhatsApp ou reserva online, conforme o plano da empresa." },
       ]),
       contact(),
       footer("Pacotes, viagens em grupo e atendimento consultivo em um so lugar."),
@@ -329,7 +329,7 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
         { value: "suporte", label: "antes e durante" },
       ]),
       productGrid("Viagens selecionadas", "Produtos podem virar roteiros completos com inclusos, nao inclusos, datas e politica comercial.", "emissivo", "editorial"),
-      about("Consultoria que aumenta valor percebido", "Use este modelo para vender conhecimento, curadoria e atendimento consultivo, nao apenas preco. O tenant edita destinos, argumentos comerciais, provas sociais e CTAs."),
+      about("Consultoria que aumenta valor percebido", "Use este modelo para vender conhecimento, curadoria e atendimento consultivo, nao apenas preco. Sua empresa edita destinos, argumentos comerciais, provas sociais e CTAs."),
       testimonials([
         { name: "Renata Moura", rating: 5, text: "O roteiro parecia uma proposta premium, com tudo bem explicado." },
         { name: "Casal Andrade", rating: 5, text: "Fechamos a lua de mel com seguranca porque as informacoes estavam claras." },
@@ -481,7 +481,7 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
       banner("Monte combos para vender ticket maior", "Combine atrativos, transporte e experiencias em produtos mais completos.", "Ver combos", "/busca", "#312e81"),
       faq([
         { question: "Posso cadastrar regras de uso?", answer: "Sim. Use informacoes importantes, inclusos e nao inclusos no cadastro do produto." },
-        { question: "Funciona para voucher digital?", answer: "Sim. O tenant pode orientar a entrega do voucher nos textos e no atendimento." },
+        { question: "Funciona para voucher digital?", answer: "Sim. Sua empresa pode orientar a entrega do voucher nos textos e no atendimento." },
       ]),
       contact(),
       footer("Venda ingressos e atrativos com informacoes claras e atendimento rapido."),
@@ -886,7 +886,7 @@ function defaultTemplatePages(template: StoreTemplate): StoreTemplatePage[] {
       nav_order: 91,
       sections: [
         hero("Politica de privacidade", "Como os dados dos clientes sao tratados na loja.", "Falar com a equipe", "/contato", image, "classic"),
-        about("Politica de privacidade", "Este texto e um placeholder editavel. Descreva quais dados sao coletados, para quais finalidades sao usados, como o cliente pode solicitar alteracao/exclusao e quais ferramentas de pagamento, atendimento e analytics fazem parte da operacao.\n\nA TuriApp oferece recursos de LGPD, consentimento e exclusao/exportacao de dados, mas cada tenant deve revisar este conteudo conforme sua realidade juridica."),
+        about("Politica de privacidade", "Este texto e um placeholder editavel. Descreva quais dados sao coletados, para quais finalidades sao usados, como o cliente pode solicitar alteracao/exclusao e quais ferramentas de pagamento, atendimento e analytics fazem parte da operacao.\n\nA TuriApp oferece recursos de LGPD, consentimento e exclusao/exportacao de dados, mas cada empresa deve revisar este conteudo conforme sua realidade juridica."),
         footer(template.description),
       ],
     },
@@ -968,8 +968,8 @@ function testimonials(items: { name: string; rating: number; text: string }[]): 
 }
 
 function faq(items = [
-  { question: "Posso editar este modelo depois?", answer: "Sim. O modelo e copiado para a loja do tenant e pode ser editado no painel." },
-  { question: "Consigo trocar fotos, textos e cores?", answer: "Sim. O tenant pode ajustar tema, secoes, produtos, imagens e conteudo comercial." },
+  { question: "Posso editar este modelo depois?", answer: "Sim. O modelo e copiado para sua loja e pode ser editado no painel." },
+  { question: "Consigo trocar fotos, textos e cores?", answer: "Sim. Sua empresa pode ajustar tema, secoes, produtos, imagens e conteudo comercial." },
 ]): StoreTemplateSection {
   return { type: "faq", visible: true, config: { title: "Duvidas frequentes", items } };
 }

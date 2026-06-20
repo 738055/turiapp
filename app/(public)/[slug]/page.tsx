@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { absoluteUrl, canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
 import { SectionRenderer } from "@/components/sections/SectionRenderer";
 import type { Page, Theme } from "@/types";
 
@@ -31,16 +32,34 @@ export async function generateMetadata({ params }: PublicPageProps) {
   const tenantId = headersList.get("x-tenant-id");
   if (!tenantId) return {};
 
-  const page = await getPublicPage(tenantId, slug);
-  if (!page) return {};
+  const [page, seo] = await Promise.all([
+    getPublicPage(tenantId, slug),
+    resolveTenantSeoContext(tenantId, headersList),
+  ]);
+  if (!page || !seo) return {};
 
+  const title = page.seo_title ?? page.title;
+  const description = page.seo_description ?? undefined;
+  const canonicalPath = page.is_home || page.slug === "inicio" ? "/" : `/${page.slug}`;
+  const image = absoluteUrl(seo.canonicalBaseUrl, page.og_image_url);
   return {
-    title: page.seo_title ?? page.title,
-    description: page.seo_description,
+    metadataBase: new URL(seo.canonicalBaseUrl),
+    title,
+    description,
+    alternates: { canonical: canonicalPath },
     openGraph: {
-      title: page.seo_title ?? page.title,
-      description: page.seo_description,
-      images: page.og_image_url ? [page.og_image_url] : [],
+      type: "website",
+      siteName: seo.tenant.name,
+      title,
+      description,
+      url: canonicalUrl(seo.canonicalBaseUrl, canonicalPath),
+      images: image ? [{ url: image }] : [],
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : [],
     },
   };
 }

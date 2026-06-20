@@ -33,7 +33,7 @@ export function TenantManageForm({ tenant, domains }: TenantManageFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenant_id: tenant.id, status }),
       });
-      if (res.ok) setMessage(`Tenant ${status === "active" ? "ativado" : "suspenso"} com sucesso.`);
+      if (res.ok) setMessage(`Cliente ${status === "active" ? "ativado" : "suspenso"} com sucesso.`);
     });
   }
 
@@ -67,7 +67,7 @@ export function TenantManageForm({ tenant, domains }: TenantManageFormProps) {
     });
   }
 
-  const plan = tenant.plans as { name: string; price: number } | null;
+  const plan = tenant.plans as { name: string; price_monthly: number } | null;
 
   return (
     <div className="space-y-5">
@@ -110,7 +110,7 @@ export function TenantManageForm({ tenant, domains }: TenantManageFormProps) {
             disabled={isPending || tenant.status === "active"}
             className="bg-green-700 hover:bg-green-600 text-white"
           >
-            Ativar tenant
+            Ativar cliente
           </Button>
           <Button
             size="sm"
@@ -119,7 +119,7 @@ export function TenantManageForm({ tenant, domains }: TenantManageFormProps) {
             disabled={isPending || tenant.status === "suspended"}
             className="border-red-800 text-red-400 hover:bg-red-900"
           >
-            Suspender tenant
+            Suspender cliente
           </Button>
         </CardContent>
       </Card>

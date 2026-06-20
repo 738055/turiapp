@@ -15,7 +15,7 @@ Tempo estimado: **2–4 horas** (a maior parte é esperar verificação de DNS/e
 |---|---|---|
 | [Supabase](https://supabase.com) | Banco, login, storage | 🔴 Sim |
 | [Resend](https://resend.com) | E-mails (voucher, convites, cobrança) | 🔴 Sim |
-| [Stripe](https://dashboard.stripe.com) | Cobrança das assinaturas dos tenants | 🔴 Sim |
+| [Stripe](https://dashboard.stripe.com) | Cobrança das assinaturas dos clientes | 🔴 Sim |
 | [Vercel](https://vercel.com) | Hospedagem + domínios | 🔴 Sim |
 | Domínio (Registro.br, etc.) | `turiapp.com.br` (ou o seu) | 🔴 Sim |
 | [Upstash](https://console.upstash.com) | Rate limit distribuído | 🟡 Recomendado |
@@ -69,8 +69,8 @@ Tempo estimado: **2–4 horas** (a maior parte é esperar verificação de DNS/e
    - Eventos: `customer.subscription.*`, `invoice.payment_succeeded`, `invoice.payment_failed`
    - Copie o **Signing secret** (`whsec_...`) → `STRIPE_WEBHOOK_SECRET`.
 
-> 💡 Os pagamentos **dos clientes dos tenants** (reservas) usam as chaves do próprio
-> tenant, configuradas por eles no painel — não exigem nada seu aqui.
+> 💡 Os pagamentos **dos clientes finais das lojas** (reservas) usam as chaves da própria
+> empresa, configuradas por ela no painel — não exigem nada seu aqui.
 
 ---
 
@@ -85,15 +85,15 @@ Tempo estimado: **2–4 horas** (a maior parte é esperar verificação de DNS/e
      estão com o mesmo valor (o código usa as duas).
 3. **Settings → Domains** → adicione:
    - `turiapp.com.br` (site institucional/landing)
-   - `*.turiapp.com.br` (lojas dos tenants por subdomínio) — **wildcard**
-   - `app.turiapp.com.br` (painel dos tenants)
+   - `*.turiapp.com.br` (lojas dos clientes por subdomínio) — **wildcard**
+   - `app.turiapp.com.br` (painel dos clientes)
    - `admin.turiapp.com.br` (super admin)
 4. Configure no DNS do domínio os registros que a Vercel pedir (geralmente A `@`
    → `76.76.21.21` e CNAME para os subdomínios → `cname.vercel-dns.com`).
-   O **wildcard `*`** é o que faz cada tenant ter `slug.turiapp.com.br`.
+   O **wildcard `*`** é o que faz cada loja ter `slug.turiapp.com.br`.
 5. **Vercel → Settings → Tokens**: crie um token → `VERCEL_API_TOKEN`. Pegue
    `VERCEL_PROJECT_ID` (Project → Settings → General) e `VERCEL_TEAM_ID` (se for Team).
-   Atualize na Vercel. (Isso liga o recurso de **domínio próprio dos tenants**.)
+   Atualize na Vercel. (Isso liga o recurso de **domínio próprio das lojas**.)
 6. **Deploy.** Os 4 cron jobs (`/api/cron/*`) já estão no `vercel.json` — a Vercel os
    ativa sozinha.
 
@@ -126,8 +126,8 @@ Marque cada item:
 [ ] 6. Criar produto modo Reserva → fazer uma reserva de teste → pagar (sandbox) → receber voucher por e-mail
 [ ] 7. Receber o e-mail de "nova reserva" como dono da loja
 [ ] 8. (Opcional) Adicionar domínio próprio em Configurações → ver A+CNAME e verificação automática
-[ ] 9. Assinar um plano (Stripe Checkout) → webhook marca o tenant como ativo
-[ ] 10. Super admin: ver MRR, tenants e audit logs em admin.turiapp.com.br
+[ ] 9. Assinar um plano (Stripe Checkout) → webhook marca a loja como ativa
+[ ] 10. Super admin: ver MRR, clientes e audit logs em admin.turiapp.com.br
 ```
 
 ---
@@ -149,7 +149,7 @@ Marque cada item:
 |---|---|
 | Botão "Assinar" dá erro | Faltou atualizar `plans.stripe_price_id_monthly` (passo 3.3) |
 | E-mails não chegam / caem em spam | Domínio não verificado no Resend (DKIM/SPF) |
-| Loja do tenant dá 404 | Faltou o wildcard `*.turiapp.com.br` na Vercel/DNS |
+| Loja do cliente dá 404 | Faltou o wildcard `*.turiapp.com.br` na Vercel/DNS |
 | "Bucket media não encontrado" no upload | Faltou criar o bucket `media` público (passo 1.5) |
-| Assinatura não ativa o tenant | Webhook do Stripe não configurado/secret errado (passo 3.4) |
-| Domínio próprio do tenant não verifica | Faltou `VERCEL_API_TOKEN`/`VERCEL_PROJECT_ID` |
+| Assinatura não ativa a loja | Webhook do Stripe não configurado/secret errado (passo 3.4) |
+| Domínio próprio da loja não verifica | Faltou `VERCEL_API_TOKEN`/`VERCEL_PROJECT_ID` |

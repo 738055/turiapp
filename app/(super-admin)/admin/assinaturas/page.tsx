@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ export default async function AssinaturasPage() {
 
   const { data: subscriptions } = await service
     .from("subscriptions")
-    .select("*, tenants(name, slug), plans(name, price)")
+    .select("*, tenants(name, slug), plans(name, price_monthly)")
     .order("created_at", { ascending: false });
 
   const mrr = (subscriptions ?? [])
@@ -35,7 +35,7 @@ export default async function AssinaturasPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
-                <th className="text-left p-4 text-gray-400 font-medium">Tenant</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Cliente</th>
                 <th className="text-left p-4 text-gray-400 font-medium">Plano</th>
                 <th className="text-left p-4 text-gray-400 font-medium">Status</th>
                 <th className="text-left p-4 text-gray-400 font-medium">Valor</th>
@@ -45,7 +45,7 @@ export default async function AssinaturasPage() {
             <tbody>
               {subscriptions?.map((s) => {
                 const tenant = s.tenants as unknown as { name: string; slug: string } | null;
-                const plan = s.plans as unknown as { name: string; price: number } | null;
+                const plan = s.plans as unknown as { name: string; price_monthly: number } | null;
                 return (
                   <tr key={s.id} className="border-b border-gray-800 last:border-0">
                     <td className="p-4">
@@ -59,7 +59,7 @@ export default async function AssinaturasPage() {
                       </Badge>
                     </td>
                     <td className="p-4 text-green-400 font-medium">
-                      {formatCurrency(s.current_period_price ?? plan?.price ?? 0, "BRL")}
+                      {formatCurrency(s.current_period_price ?? plan?.price_monthly ?? 0, "BRL")}
                     </td>
                     <td className="p-4 text-gray-400 text-xs">
                       {s.current_period_end

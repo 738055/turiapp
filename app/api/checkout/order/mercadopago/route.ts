@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (!bookings?.length) return NextResponse.json({ error: "Pedido vazio." }, { status: 400 });
 
   const { data: tenant } = await service.from("tenants").select("slug").eq("id", tenant_id).single();
-  if (!tenant) return NextResponse.json({ error: "Tenant não encontrado." }, { status: 404 });
+  if (!tenant) return NextResponse.json({ error: "Loja não encontrada." }, { status: 404 });
 
   const { data: paymentAccount } = await service
     .from("tenant_payment_accounts")

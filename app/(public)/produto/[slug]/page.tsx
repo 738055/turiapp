@@ -25,6 +25,7 @@ import { BookingWidget } from "@/components/public/BookingWidget";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedPublicProduct, getCachedPublicTheme } from "@/lib/public-cache";
+import { absoluteUrl, canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
 import {
   lowestRate,
   productCategoryLabel,
@@ -46,24 +47,42 @@ export async function generateMetadata({ params }: ProductPageProps) {
   const tenantId = headersList.get("x-tenant-id");
   if (!tenantId) return {};
 
-  const supabase = createServiceClient();
-  const { data: product } = await supabase
-    .from("products")
-    .select("title, seo_title, seo_description, images")
-    .eq("tenant_id", tenantId)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+  const [seo, { data: product }] = await Promise.all([
+    resolveTenantSeoContext(tenantId, headersList),
+    createServiceClient()
+      .from("products")
+      .select("title, seo_title, seo_description, og_image_url, images")
+      .eq("tenant_id", tenantId)
+      .eq("slug", slug)
+      .eq("status", "published")
+      .single(),
+  ]);
 
-  if (!product) return {};
+  if (!product || !seo) return {};
+
+  const title = product.seo_title ?? product.title;
+  const description = product.seo_description ?? undefined;
+  const image = absoluteUrl(seo.canonicalBaseUrl, product.og_image_url ?? product.images?.[0]);
+  const canonicalPath = `/produto/${slug}`;
 
   return {
-    title: product.seo_title ?? product.title,
-    description: product.seo_description,
+    metadataBase: new URL(seo.canonicalBaseUrl),
+    title,
+    description,
+    alternates: { canonical: canonicalPath },
     openGraph: {
-      title: product.seo_title ?? product.title,
-      description: product.seo_description,
-      images: product.images?.[0] ? [product.images[0]] : [],
+      type: "website",
+      siteName: seo.tenant.name,
+      title,
+      description,
+      url: canonicalUrl(seo.canonicalBaseUrl, canonicalPath),
+      images: image ? [{ url: image }] : [],
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : [],
     },
   };
 }
@@ -75,9 +94,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!tenantId && process.env.NODE_ENV !== "development") notFound();
 
-  const [product, theme] = await Promise.all([
+  const [product, theme, seo] = await Promise.all([
     getCachedPublicProduct(tenantId ?? "", slug),
     getCachedPublicTheme(tenantId ?? ""),
+    tenantId ? resolveTenantSeoContext(tenantId, headersList) : Promise.resolve(null),
   ]);
 
   if (!product) notFound();
@@ -106,9 +126,23 @@ export default async function ProductPage({ params }: ProductPageProps) {
     approvedReviews.length > 0
       ? approvedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / approvedReviews.length
       : 0;
+  const productJsonLd = buildProductJsonLd({
+    product: p,
+    images,
+    rate,
+    baseUrl: seo?.canonicalBaseUrl,
+    ratingValue: avgRating,
+    reviewCount: approvedReviews.length,
+  });
 
   return (
     <main className="bg-gray-50 text-gray-900">
+      {productJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        />
+      )}
       <div className="border-b border-gray-100 bg-white py-4 text-sm text-gray-500">
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="hover:text-[var(--color-primary)]">Inicio</Link>
@@ -226,6 +260,61 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </div>
     </main>
   );
+}
+
+function buildProductJsonLd({
+  product,
+  images,
+  rate,
+  baseUrl,
+  ratingValue,
+  reviewCount,
+}: {
+  product: PublicProduct;
+  images: string[];
+  rate: ProductRate | null;
+  baseUrl?: string;
+  ratingValue: number;
+  reviewCount: number;
+}) {
+  if (!baseUrl) return null;
+  const imageUrls = images
+    .map((image) => absoluteUrl(baseUrl, image))
+    .filter((image): image is string => Boolean(image));
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.seo_title ?? product.title,
+    description: product.seo_description ?? product.description,
+    image: imageUrls,
+    category: productCategoryLabel(product),
+    url: canonicalUrl(baseUrl, `/produto/${product.slug}`),
+    ...(rate
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: rate.price,
+            priceCurrency: rate.currency,
+            availability: "https://schema.org/InStock",
+            url: canonicalUrl(baseUrl, `/produto/${product.slug}`),
+          },
+        }
+      : {}),
+    ...(reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: Number(avgRound(ratingValue)),
+            reviewCount,
+          },
+        }
+      : {}),
+  };
+}
+
+function avgRound(value: number) {
+  return value.toFixed(1);
 }
 
 function ProductGallery({ images, title }: { images: string[]; title: string }) {

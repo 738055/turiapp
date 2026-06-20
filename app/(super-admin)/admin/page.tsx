@@ -38,13 +38,13 @@ export default async function SuperAdminDashboard() {
   );
 
   const metrics: Metric[] = [
-    { label: "Total de tenants", value: totalTenants ?? 0 },
-    { label: "Tenants ativos", value: activeTenants ?? 0 },
+    { label: "Total de clientes", value: totalTenants ?? 0 },
+    { label: "Clientes ativos", value: activeTenants ?? 0 },
     { label: "MRR", value: formatCurrency(mrr, "BRL"), sub: "Receita mensal recorrente" },
     { label: "Total de reservas", value: totalBookings ?? 0 },
   ];
 
-  // Recent tenants
+  // Recent customer accounts
   const { data: recentTenants } = await service
     .from("tenants")
     .select("id, name, slug, subscription_status, created_at")
@@ -71,10 +71,10 @@ export default async function SuperAdminDashboard() {
         ))}
       </div>
 
-      {/* Recent tenants */}
+      {/* Recent customer accounts */}
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle className="text-base text-white">Tenants recentes</CardTitle>
+          <CardTitle className="text-base text-white">Clientes recentes</CardTitle>
         </CardHeader>
         <CardContent>
           <table className="w-full text-sm">

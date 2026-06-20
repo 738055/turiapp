@@ -24,17 +24,17 @@ create table if not exists plans (
 -- Seed default plans
 insert into plans (name, tier, price_monthly, price_yearly, limits, features) values
 (
-  'Básico', 'basico', 97.00, 970.00,
-  '{"max_products":20,"max_pages":5,"custom_domain":false,"pixel_integrations":false,"booking_engine":false,"max_team_members":1}',
-  '{"Até 20 produtos","5 páginas","Botão WhatsApp","Subdomínio gratuito"}'
+  'Básico', 'basico', 110.00, 1100.00,
+  '{"max_products":20,"max_pages":5,"custom_domain":true,"pixel_integrations":false,"booking_engine":false,"max_team_members":1}',
+  '{"Até 20 produtos","5 páginas","Botão WhatsApp","Subdomínio gratuito","Domínio próprio"}'
 ),
 (
-  'Pro', 'pro', 197.00, 1970.00,
+  'Pro', 'pro', 250.00, 2500.00,
   '{"max_products":100,"max_pages":20,"custom_domain":true,"pixel_integrations":true,"booking_engine":true,"max_team_members":3}',
   '{"Até 100 produtos","20 páginas","Motor de reservas","Domínio próprio","Pixels e Analytics","3 usuários"}'
 ),
 (
-  'Premium', 'premium', 397.00, 3970.00,
+  'Enterprise', 'premium', 600.00, 6000.00,
   '{"max_products":-1,"max_pages":-1,"custom_domain":true,"pixel_integrations":true,"booking_engine":true,"max_team_members":-1}',
   '{"Produtos ilimitados","Páginas ilimitadas","Motor de reservas avançado","Domínio próprio","Pixels e Analytics","Usuários ilimitados","Suporte prioritário"}'
 )

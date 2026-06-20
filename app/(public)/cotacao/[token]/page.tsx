@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import { QuoteResponseWidget } from "@/components/public/QuoteResponseWidget";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 interface QuotePageProps {
   params: Promise<{ token: string }>;

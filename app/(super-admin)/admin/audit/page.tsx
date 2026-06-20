@@ -25,7 +25,7 @@ export default async function AuditPage() {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left p-3 text-gray-400 font-medium">Data</th>
-                <th className="text-left p-3 text-gray-400 font-medium">Tenant</th>
+                <th className="text-left p-3 text-gray-400 font-medium">Cliente</th>
                 <th className="text-left p-3 text-gray-400 font-medium">Ação</th>
                 <th className="text-left p-3 text-gray-400 font-medium">Recurso</th>
                 <th className="text-left p-3 text-gray-400 font-medium">IP</th>

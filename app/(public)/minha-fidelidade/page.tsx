@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { LoyaltyAccount } from "@/components/public/LoyaltyAccount";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function FidelidadePublicPage() {
   const headersList = await headers();

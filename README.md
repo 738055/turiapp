@@ -1,6 +1,6 @@
 # TuriApp
 
-SaaS white-label para negocios de turismo. Cada tenant tem storefront publico,
+SaaS white-label para negocios de turismo. Cada cliente tem uma loja publica,
 catalogo, reservas, pagamentos, CRM, automacoes e atendimento via WhatsApp
 Business, isolados por RLS no Supabase.
 
@@ -9,7 +9,7 @@ Business, isolados por RLS no Supabase.
 - Next.js 16 App Router
 - Supabase Auth, Postgres, Storage e RLS
 - Stripe Subscriptions para cobranca da plataforma
-- Stripe/Mercado Pago para pagamentos dos tenants
+- Stripe/Mercado Pago para pagamentos das lojas
 - Resend para e-mails
 - 360dialog para WhatsApp Business API
 
@@ -37,14 +37,14 @@ pnpm build
 2. Configure Supabase, Stripe, Mercado Pago, Resend e chaves de criptografia.
 3. Rode as migrations em `db/migrations` e depois `db/policies/rls.sql`.
 4. Crie o bucket publico `media` no Supabase Storage.
-5. Para WhatsApp, conecte o tenant em `/whatsapp` e configure o webhook exibido
+5. Para WhatsApp, conecte a loja em `/whatsapp` e configure o webhook exibido
    na tela no painel da 360dialog.
 
 ## Atendimento WhatsApp
 
 A central em `/conversas` suporta:
 
-- conversas inbound/outbound por tenant;
+- conversas inbound/outbound por loja;
 - janela de 24h da Meta para texto livre;
 - templates aprovados fora da janela;
 - anexos dentro da janela: imagem, audio, video e documentos;
@@ -64,7 +64,7 @@ references/projetos-base/
 ```
 
 Essa pasta nao entra no build nem no typecheck. A TuriApp extrai deles modelos
-nativos em `lib/store-templates.ts`. No onboarding, o tenant escolhe um modelo,
+nativos em `lib/store-templates.ts`. No onboarding, o cliente escolhe um modelo,
 ve preview em tempo real e recebe uma copia editavel de:
 
 - tema visual;
@@ -75,7 +75,7 @@ ve preview em tempo real e recebe uma copia editavel de:
 - primeiro produto com campos ricos;
 - layout de cards e hero.
 
-Os modelos ficam separados por tipo para facilitar a escolha do tenant:
+Os modelos ficam separados por tipo para facilitar a escolha do cliente:
 
 - Multiuso: Turismo Direto;
 - Receptivo: Receptivo Premium, Aventura Local, Ingressos & Atrativos e Transfer Executivo;
@@ -99,7 +99,7 @@ guiados no painel, evitando sintaxe manual por linha.
 Use `GO-LIVE.md` como runbook de producao. O `STATUS.md` e a fonte rapida do
 estado atual, pendencias e mapa de arquivos.
 
-## Dominio De Teste Para Tenants
+## Dominio De Teste Para Lojas
 
 Para usar um dominio como `nitromethanebrasil.com.br` em testes de lojas
 (`rotas-e-horizontes.nitromethanebrasil.com.br`), adicione no mesmo projeto da
@@ -122,7 +122,7 @@ Sem o wildcard associado ao projeto, a Vercel retorna `DEPLOYMENT_NOT_FOUND`
 antes da TuriApp receber a request.
 
 O preview real de Aparencia/Paginas usa iframe. O CSP permite abrir destinos
-HTTPS em `frame-src` para suportar dominios proprios verificados dos tenants,
+HTTPS em `frame-src` para suportar dominios proprios verificados das lojas,
 mas o storefront so aceita ser emoldurado pelos hosts da propria plataforma via
 `frame-ancestors`. A Vercel URL do proprio deploy entra automaticamente quando
 `VERCEL_URL`/`VERCEL_PROJECT_PRODUCTION_URL` estiverem disponiveis; se o painel

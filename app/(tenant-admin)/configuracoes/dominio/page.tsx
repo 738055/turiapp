@@ -57,7 +57,7 @@ export default async function DominioPage() {
           </div>
           <PlanLockCard
             title="Domínio próprio"
-            description="Usar seu próprio domínio (ex.: www.suaempresa.com.br) faz parte do plano Pro. Seu site continua no ar no endereço acima."
+            description="Usar seu próprio domínio (ex.: www.suaempresa.com.br) precisa estar liberado no seu plano. Seu site continua no ar no endereço acima."
           />
         </>
       )}

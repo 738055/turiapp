@@ -6,7 +6,7 @@ import { requireAal2ForSuperAdmin } from "@/lib/auth/super-admin";
 
 const NAV = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/tenants", label: "Tenants" },
+  { href: "/admin/tenants", label: "Clientes" },
   { href: "/admin/assinaturas", label: "Assinaturas" },
   { href: "/admin/planos", label: "Planos" },
   { href: "/admin/audit", label: "Auditoria" },

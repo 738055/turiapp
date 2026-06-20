@@ -96,7 +96,7 @@ function MarketplaceProductSection({
           align="center"
           eyebrow={cfg.eyebrow || "Experiencias selecionadas"}
           title={cfg.title || "Mais reservados"}
-          subtitle={cfg.subtitle || "Produtos cadastrados pelo tenant ja entram no desenho profissional do modelo escolhido."}
+          subtitle={cfg.subtitle || "Produtos cadastrados pela loja ja entram no desenho profissional do modelo escolhido."}
         />
 
         {!products.length ? (

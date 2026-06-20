@@ -17,8 +17,8 @@ export default async function TenantsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Todos os tenants</h1>
-        <p className="text-gray-400 text-sm mt-1">{tenants?.length ?? 0} tenants cadastrados</p>
+        <h1 className="text-2xl font-bold text-white">Todos os clientes</h1>
+        <p className="text-gray-400 text-sm mt-1">{tenants?.length ?? 0} clientes cadastrados</p>
       </div>
 
       <div className="space-y-2">

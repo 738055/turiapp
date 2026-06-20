@@ -322,7 +322,7 @@ async function executeRun(service: ServiceClient, run: RunRow): Promise<"execute
         .single();
 
       if (!integrations || integrations.whatsapp_status !== "connected" || !integrations.whatsapp_api_key_encrypted) {
-        await markRun(service, run.id, "skipped", "WhatsApp Business API não conectado para este tenant.");
+        await markRun(service, run.id, "skipped", "WhatsApp Business API não conectado para esta loja.");
         return "skipped";
       }
 
@@ -373,7 +373,7 @@ async function executeRun(service: ServiceClient, run: RunRow): Promise<"execute
         service.from("tenants").select("name, slug").eq("id", automation.tenant_id).single(),
         service.from("themes").select("primary_color").eq("tenant_id", automation.tenant_id).maybeSingle(),
       ]);
-      if (!tenant) throw new Error("Tenant não encontrado.");
+      if (!tenant) throw new Error("Loja não encontrada.");
 
       const fields = { ...vars.fields, quote_url: vars.link ?? vars.fields.quote_url ?? "" };
       const html = renderAutomationEmailHtml({

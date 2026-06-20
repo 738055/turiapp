@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -5,6 +6,9 @@ import { hashReviewToken } from "@/lib/reviews/token";
 import { ReviewForm } from "@/components/public/ReviewForm";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AvaliarPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

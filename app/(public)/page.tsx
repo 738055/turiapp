@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { absoluteUrl, canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
 import type { Page, Theme } from "@/types";
 import { SectionRenderer } from "@/components/sections/SectionRenderer";
 
@@ -44,7 +45,10 @@ export default async function StorefrontHome() {
     );
   }
 
-  const pageData = await getHomePage(tenantId);
+  const [pageData, seo] = await Promise.all([
+    getHomePage(tenantId),
+    resolveTenantSeoContext(tenantId, headersList),
+  ]);
 
   if (!pageData) {
     return (
@@ -57,6 +61,20 @@ export default async function StorefrontHome() {
 
   return (
     <main>
+      {seo && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "TravelAgency",
+              name: seo.tenant.name,
+              url: canonicalUrl(seo.canonicalBaseUrl, "/"),
+              ...(pageData.og_image_url ? { image: absoluteUrl(seo.canonicalBaseUrl, pageData.og_image_url) } : {}),
+            }),
+          }}
+        />
+      )}
       {pageData.sections
         ?.sort((a, b) => a.order - b.order)
         .filter((s) => s.visible)

@@ -4,7 +4,7 @@
 > Build: ✅ Passing (`pnpm run build`) · TypeScript ✅ sem erros
 > Rotas de API: 99 · Páginas: 65
 > Testes: ✅ 72/72 passando (`pnpm test`)
-> Migrations: 26 (`db/migrations/001` a `026`) · RLS em 100% das tabelas públicas
+> Migrations: 28 (`db/migrations/001` a `028`) · RLS em 100% das tabelas públicas
 
 ---
 
@@ -34,6 +34,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Busca publica mais limpa:** `/busca` monta o filtro de modulo apenas com categorias que possuem produtos publicados no tenant; se a loja nao tem hospedagem, hospedagem nao aparece no select
 - **CRM e Atendimento como recurso Pro:** trial/Basico veem preview bloqueado de Leads, Clientes, Cotacoes, Configuracoes de CRM, Atendimento e WhatsApp Business; mutacoes dessas areas sao negadas no backend ate upgrade para Pro/Enterprise
 - **Landing comercial recriada:** pagina inicial publica foi refeita com narrativa especifica de turismo, imagem real, modulos receptivo/emissivo/hospedagem, planos com diferencas claras e posicionamento Pro/Enterprise para CRM/Atendimento
+- **SEO multi-tenant profissional:** `/sitemap.xml` e `/robots.txt` agora resolvem tenant por host, funcionam em subdominio e dominio proprio, preferem o dominio canonico, incluem paginas/produtos publicados com imagens, adicionam canonical/OG nas paginas publicas e marcam checkout/carrinho/cotacoes como noindex
 
 ---
 
@@ -201,8 +202,8 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - `products.extra_data` alimenta layouts profissionais com duracao/local, destaques, inclui, nao inclui, roteiro, informacoes importantes, politica de cancelamento, idiomas do guia, galeria adicional e dados de hospedagem (capacidade/quartos/banheiros); o CRUD de produtos expoe esses campos sem migration nova
 - SEO por produto (title, description, OG)
 - Limite de produtos por plano (Básico: 20 / Pro: 100 / Premium: ilimitado)
-- **Gating de features por plano** (`lib/plans/limits.ts`): `booking_engine` (Básico = só WhatsApp, bloqueia modo "reserva" e conectar pagamento), `custom_domain` (bloqueia domínio próprio) e `pixel_integrations` (bloqueia pixels/analytics, incluindo `head_scripts`) **aplicados no backend** (products/save, payments/connect, domain/add, integrations/save); trial (sem plano) = acesso liberado; produto já em modo reserva mantém após downgrade (só novas ativações são barradas). Antes só `max_products`/`max_team_members` eram enforçados (furo de monetização fechado)
-- **UI de upsell** (`components/admin/PlanGate.tsx` — `ProBadge`/`PlanLockCard`): no Básico, o card "Reserva online" do produto fica desabilitado com selo PRO; as telas de Pagamentos, Domínio próprio e Pixels mostram um cartão de bloqueio com CTA "Ver planos e fazer upgrade"
+- **Gating de features por plano** (`lib/plans/limits.ts`): `booking_engine` (Básico = só WhatsApp, bloqueia modo "reserva" e conectar pagamento), `custom_domain` (liberado também no Básico) e `pixel_integrations` (bloqueia pixels/analytics, incluindo `head_scripts`) **aplicados no backend** (products/save, payments/connect, domain/add, integrations/save); trial (sem plano) = acesso liberado; produto já em modo reserva mantém após downgrade (só novas ativações são barradas). Antes só `max_products`/`max_team_members` eram enforçados
+- **UI de upsell** (`components/admin/PlanGate.tsx` — `ProBadge`/`PlanLockCard`): no Básico, o card "Reserva online" do produto fica desabilitado com selo PRO; as telas de Pagamentos e Pixels mostram cartão de bloqueio com CTA "Ver planos e fazer upgrade"; Domínio próprio fica liberado no Básico
 - **Calendário de disponibilidade** por produto: vagas por dia, bloqueios, notas, quick fills mensais
 
 ### Motor de reservas e checkout
@@ -302,7 +303,9 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Domínio próprio** — adicionar/remover self-service com SSL automático via Vercel; instruções DNS mostram **A (raiz) e CNAME (www) sempre** com aviso "use o que seu provedor permitir"; registros DNS persistidos (`vercel_config`) e re-exibidos no reload; verificação automática (30s) com **3 estados**: Aguardando DNS → Emitindo SSL → Verificado e seguro. (Corrigido bug: `ssl_status` gravava `'active'`, valor fora da constraint do banco `('pending','issued','failed')` — fazia a verificação falhar e o domínio nunca subir)
 
 ### SEO & LGPD
-- `sitemap.xml` e `robots.txt` dinâmicos por tenant
+- `sitemap.xml` e `robots.txt` dinâmicos por tenant, com suporte a subdominio e dominio proprio; quando ha dominio custom verificado com SSL, ele vira o canonical usado no sitemap, robots e metadados
+- Sitemap inclui home, paginas publicadas, `/busca` quando existem produtos, produtos publicados e imagens (`image:sitemap`); paginas transacionais (`checkout`, `carrinho`, `cotacao`, `avaliar`, fidelidade) ficam fora do indice
+- Canonical, OpenGraph/Twitter e JSON-LD (`TravelAgency` na home e `Product/Offer` nos produtos) nas rotas publicas
 - Banner de consentimento de cookies (localStorage, evento `cookieConsentAccepted`)
 - Scripts de pixel só injetados após consentimento (`strategy="afterInteractive"`)
 - Export de dados do titular (LGPD Art. 18) e anonimização/exclusão
@@ -523,31 +526,36 @@ As próximas etapas estão ordenadas por impacto real no produto. As primeiras s
 
 ## 💰 Estrutura de pricing sugerida com os novos módulos
 
-| Recurso | Básico R$97 | Pro R$297 | Premium R$597 | Enterprise R$1.200 |
-|---|:---:|:---:|:---:|:---:|
-| Produtos | 20 | 100 | Ilimitado | Ilimitado |
-| Páginas do site | 5 | 20 | Ilimitado | Ilimitado |
-| Motor de reservas online | ✅ | ✅ | ✅ | ✅ |
-| Stripe + Mercado Pago | ✅ | ✅ | ✅ | ✅ |
-| PIX | — | ✅ | ✅ | ✅ |
-| Domínio próprio | — | ✅ | ✅ | ✅ |
-| Pixels / Analytics | — | ✅ | ✅ | ✅ |
-| Usuários da equipe | 1 | 3 | 10 | Ilimitado |
-| **Pipeline de leads** | — | ✅ | ✅ | ✅ |
-| **Cotações digitais** | — | ✅ | ✅ | ✅ |
-| **Score e segmentação** | — | ✅ | ✅ | ✅ |
-| **Histórico 360° do cliente** | — | ✅ | ✅ | ✅ |
-| **Relatórios PDF** | — | ✅ | ✅ | ✅ |
-| **Cupons de desconto** | — | ✅ | ✅ | ✅ |
-| **Automações por gatilho** | — | — | ✅ | ✅ |
-| **WhatsApp Business API** | — | — | ✅ | ✅ |
-| **Webhooks de saída** | — | — | ✅ | ✅ |
-| **API pública REST** | — | — | ✅ | ✅ |
-| **Programa de fidelidade** | — | — | ✅ | ✅ |
-| **iCal / OTA sync** | — | — | — | ✅ |
-| **Multi-marcas** | — | — | — | ✅ |
-| **Permissões granulares** | — | — | — | ✅ |
-| Suporte | Email | Email | Prioritário | Dedicado |
+| Recurso | Básico R$110 | Pro R$250 | Enterprise R$600 |
+|---|:---:|:---:|:---:|
+| Produtos | 20 | 100 | Ilimitado |
+| Páginas do site | 5 | 20 | Ilimitado |
+| Loja white-label e templates | ✅ | ✅ | ✅ |
+| Botão WhatsApp nos produtos | ✅ | ✅ | ✅ |
+| Motor de reservas online | — | ✅ | ✅ |
+| Stripe + Mercado Pago | — | ✅ | ✅ |
+| PIX | — | ✅ | ✅ |
+| Domínio próprio | ✅ | ✅ | ✅ |
+| Pixels / Analytics | — | ✅ | ✅ |
+| Usuários da equipe | 1 | 3 | Ilimitado |
+| **Pipeline de leads** | Preview | ✅ | ✅ |
+| **Cotações digitais** | Preview | ✅ | ✅ |
+| **Atendimento WhatsApp / CRM** | Preview | ✅ | ✅ |
+| **Score e segmentação** | Preview | ✅ | ✅ |
+| **Histórico 360° do cliente** | Preview | ✅ | ✅ |
+| **Relatórios PDF** | — | ✅ | ✅ |
+| **Cupons de desconto** | — | ✅ | ✅ |
+| **Automações por gatilho** | Internas | ✅ | ✅ |
+| **WhatsApp Business API** | — | ✅ | ✅ |
+| **Webhooks de saída** | — | — | ✅ |
+| **API pública REST** | — | — | ✅ |
+| **Programa de fidelidade** | — | — | ✅ |
+| **iCal / OTA sync** | — | — | ✅ |
+| **Multi-marcas** | — | — | ✅ |
+| **Permissões granulares** | — | — | ✅ |
+| Suporte | Email | Email prioritário | Prioritário |
+
+> Observação: em produção, a cobrança do Stripe segue os `stripe_price_id_monthly/yearly` salvos em `plans`. Depois de aplicar a migration, os Price IDs precisam apontar para preços Stripe criados com R$110, R$250 e R$600.
 
 ---
 

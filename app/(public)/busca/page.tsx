@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Search } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedPublicTheme } from "@/lib/public-cache";
+import { canonicalUrl, resolveTenantSeoContext } from "@/lib/seo/tenant";
 import { lowestRate, type PublicProduct } from "@/lib/storefront-design";
 import { StorefrontProductCard } from "@/components/sections/ProductGridSection";
 
@@ -29,6 +31,39 @@ const SORTS = [
   { value: "menor_preco", label: "Menor preco" },
   { value: "recentes", label: "Mais recentes" },
 ];
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const headersList = await headers();
+  const tenantId = headersList.get("x-tenant-id");
+  if (!tenantId) return { robots: { index: false, follow: false } };
+
+  const seo = await resolveTenantSeoContext(tenantId, headersList);
+  if (!seo) return { robots: { index: false, follow: false } };
+
+  const hasFilters = Object.values(sp).some((value) => typeof value === "string" && value.trim().length > 0);
+  const title = hasFilters ? `Resultados de busca | ${seo.tenant.name}` : `Busca | ${seo.tenant.name}`;
+  const description = `Encontre produtos, pacotes, hospedagens e experiencias de ${seo.tenant.name}.`;
+
+  return {
+    metadataBase: new URL(seo.canonicalBaseUrl),
+    title,
+    description,
+    alternates: { canonical: "/busca" },
+    robots: hasFilters ? { index: false, follow: true } : { index: true, follow: true },
+    openGraph: {
+      type: "website",
+      siteName: seo.tenant.name,
+      title,
+      description,
+      url: canonicalUrl(seo.canonicalBaseUrl, "/busca"),
+    },
+  };
+}
 
 export default async function BuscaPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;

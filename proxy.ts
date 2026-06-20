@@ -84,18 +84,24 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const { pathname } = request.nextUrl;
   const ref = request.nextUrl.searchParams.get("ref");
+  const isSeoRoute = pathname === "/sitemap.xml" || pathname === "/robots.txt";
 
   // API routes and static files — skip tenant resolution
   if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/favicon") ||
-    pathname.includes(".")
+    !isSeoRoute &&
+    (pathname.startsWith("/_next") ||
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/favicon") ||
+      pathname.includes("."))
   ) {
     return updateSession(request);
   }
 
   const cleanHost = host.split(":")[0];
+
+  if (isSeoRoute && (cleanHost === PLATFORM_HOST || cleanHost === ADMIN_HOST || cleanHost === APP_HOST)) {
+    return updateSession(request);
+  }
 
   // ── Super admin panel ──────────────────────────────────────────────────────
   if (cleanHost === ADMIN_HOST) {

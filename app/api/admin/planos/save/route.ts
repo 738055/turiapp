@@ -8,8 +8,10 @@ import { isSuperAdmin } from "@/lib/auth/super-admin";
 const schema = z.object({
   plan_id: z.string().uuid(),
   name: z.string().min(1).max(50),
-  price: z.number().min(0),
-  stripe_price_id: z.string().nullable().optional(),
+  price_monthly: z.number().min(0),
+  price_yearly: z.number().min(0),
+  stripe_price_id_monthly: z.string().nullable().optional(),
+  stripe_price_id_yearly: z.string().nullable().optional(),
   limits: z.record(z.string(), z.unknown()),
 });
 
@@ -27,12 +29,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos.", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { plan_id, name, price, stripe_price_id, limits } = parsed.data;
+  const { plan_id, name, price_monthly, price_yearly, stripe_price_id_monthly, stripe_price_id_yearly, limits } = parsed.data;
   const service = createServiceClient();
 
   const { error } = await service
     .from("plans")
-    .update({ name, price, stripe_price_id: stripe_price_id ?? null, limits })
+    .update({
+      name,
+      price_monthly,
+      price_yearly,
+      stripe_price_id_monthly: stripe_price_id_monthly ?? null,
+      stripe_price_id_yearly: stripe_price_id_yearly ?? null,
+      limits,
+    })
     .eq("id", plan_id);
 
   if (error) return NextResponse.json({ error: "Erro ao salvar plano." }, { status: 500 });

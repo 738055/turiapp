@@ -4,14 +4,16 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Save, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Plan {
   id: string;
   name: string;
-  price: number;
-  stripe_price_id?: string;
+  price_monthly: number;
+  price_yearly: number;
+  stripe_price_id_monthly?: string;
+  stripe_price_id_yearly?: string;
   limits: Record<string, unknown>;
 }
 
@@ -44,8 +46,10 @@ function PlanCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(plan.name);
-  const [price, setPrice] = useState(String(plan.price));
-  const [stripePriceId, setStripePriceId] = useState(plan.stripe_price_id ?? "");
+  const [priceMonthly, setPriceMonthly] = useState(String(plan.price_monthly));
+  const [priceYearly, setPriceYearly] = useState(String(plan.price_yearly));
+  const [stripePriceIdMonthly, setStripePriceIdMonthly] = useState(plan.stripe_price_id_monthly ?? "");
+  const [stripePriceIdYearly, setStripePriceIdYearly] = useState(plan.stripe_price_id_yearly ?? "");
   const [limitsJson, setLimitsJson] = useState(JSON.stringify(plan.limits, null, 2));
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +73,10 @@ function PlanCard({
         body: JSON.stringify({
           plan_id: plan.id,
           name,
-          price: parseFloat(price),
-          stripe_price_id: stripePriceId || null,
+          price_monthly: parseFloat(priceMonthly),
+          price_yearly: parseFloat(priceYearly),
+          stripe_price_id_monthly: stripePriceIdMonthly || null,
+          stripe_price_id_yearly: stripePriceIdYearly || null,
           limits,
         }),
       });
@@ -91,7 +97,7 @@ function PlanCard({
       >
         <div>
           <p className="font-semibold text-white">{plan.name}</p>
-          <p className="text-sm text-gray-400">R$ {plan.price}/mês</p>
+          <p className="text-sm text-gray-400">R$ {plan.price_monthly}/mês</p>
         </div>
         {isOpen ? (
           <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -115,20 +121,40 @@ function PlanCard({
               <Label className="text-xs text-gray-400">Preço mensal (BRL)</Label>
               <Input
                 type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                value={priceMonthly}
+                onChange={(e) => setPriceMonthly(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-gray-400">Preço anual (BRL)</Label>
+              <Input
+                type="number"
+                value={priceYearly}
+                onChange={(e) => setPriceYearly(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-gray-400">Stripe Price ID</Label>
-            <Input
-              value={stripePriceId}
-              onChange={(e) => setStripePriceId(e.target.value)}
-              placeholder="price_..."
-              className="bg-gray-800 border-gray-700 text-white font-mono text-xs"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-gray-400">Stripe Price ID mensal</Label>
+              <Input
+                value={stripePriceIdMonthly}
+                onChange={(e) => setStripePriceIdMonthly(e.target.value)}
+                placeholder="price_..."
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-gray-400">Stripe Price ID anual</Label>
+              <Input
+                value={stripePriceIdYearly}
+                onChange={(e) => setStripePriceIdYearly(e.target.value)}
+                placeholder="price_..."
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs"
+              />
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-gray-400">Limites (JSON)</Label>

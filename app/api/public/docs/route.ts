@@ -13,7 +13,7 @@ const openApiSpec = {
     title: "TuriApp Public API",
     version: "1.0.0",
     description:
-      "API pública para integração com a loja do tenant. Autentique com `Authorization: Bearer {sua_chave}`. Limite: 500 requisições/hora por chave.",
+      "API pública para integração com a loja da empresa. Autentique com `Authorization: Bearer {sua_chave}`. Limite: 500 requisições/hora por chave.",
   },
   servers: [{ url: "/api/public" }],
   components: {

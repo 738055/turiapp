@@ -43,7 +43,7 @@ const OPERATIONS = [
 const STACK = [
   { icon: Globe, title: "Loja white-label", text: "Templates profissionais por nicho, paginas prontas, dominio e identidade visual." },
   { icon: CalendarCheck, title: "Produtos e reservas", text: "Cadastro rico, tarifas, disponibilidade, carrinho e checkout online no Pro." },
-  { icon: CreditCard, title: "Pagamentos diretos", text: "PIX, cartao e boleto indo para a conta do tenant, sem comissao da plataforma." },
+  { icon: CreditCard, title: "Pagamentos diretos", text: "PIX, cartao e boleto indo para a conta da sua empresa, sem comissao da plataforma." },
   { icon: Target, title: "CRM Pro", text: "Leads, clientes, cotacoes, pipeline e segmentacao comercial nos planos Pro e Enterprise." },
   { icon: MessageCircle, title: "Atendimento Pro", text: "Central WhatsApp, historico, notas, responsaveis e respostas pela equipe." },
   { icon: FileText, title: "Operacao organizada", text: "FAQ, termos, paginas, automacoes, relatorios e conteudo pronto para editar." },
@@ -52,7 +52,7 @@ const STACK = [
 const PLANS = [
   {
     name: "Basico",
-    price: "97",
+    price: "110",
     subtitle: "Para publicar a loja e vender por contato direto.",
     highlight: false,
     features: [
@@ -60,14 +60,14 @@ const PLANS = [
       "Ate 20 produtos",
       "Paginas editaveis",
       "Botao WhatsApp nos produtos",
-      "Subdominio TuriApp",
+      "Subdominio ou dominio proprio",
       "1 usuario",
     ],
-    note: "CRM, atendimento, reservas online e dominio proprio ficam no Pro.",
+    note: "CRM, atendimento, reservas online e pagamentos ficam no Pro.",
   },
   {
     name: "Pro",
-    price: "197",
+    price: "250",
     subtitle: "Para operar vendas, reservas, CRM e atendimento.",
     highlight: true,
     features: [
@@ -85,7 +85,7 @@ const PLANS = [
   },
   {
     name: "Enterprise",
-    price: "397",
+    price: "600",
     subtitle: "Para escalar operacao, equipe e catalogo.",
     highlight: false,
     features: [
@@ -97,7 +97,7 @@ const PLANS = [
       "API publica",
       "Suporte prioritario",
     ],
-    note: "No sistema este tier corresponde ao Premium.",
+    note: "Para operacoes com alto volume, time maior e automacoes avancadas.",
   },
 ];
 
@@ -108,11 +108,11 @@ const FAQ = [
   },
   {
     q: "A TuriApp cobra comissao?",
-    a: "Nao. O tenant paga a assinatura. Quando usa checkout online, o pagamento vai para a propria conta Stripe ou Mercado Pago do tenant.",
+    a: "Nao. Sua empresa paga a assinatura. Quando usa checkout online, o pagamento vai para a propria conta Stripe ou Mercado Pago da sua empresa.",
   },
   {
     q: "Preciso de designer?",
-    a: "Nao. O tenant escolhe um modelo pronto por tipo de negocio e edita cores, conteudo, produtos, footer, paginas e secoes guiadas.",
+    a: "Nao. Sua empresa escolhe um modelo pronto por tipo de negocio e edita cores, conteudo, produtos, footer, paginas e secoes guiadas.",
   },
   {
     q: "Serve para agencia e hospedagem?",
@@ -197,7 +197,7 @@ export default function LandingPage() {
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-white/72">
-              O tenant parte de modelos prontos, troca identidade, edita secoes e vende com conteudo completo.
+              Sua empresa parte de modelos prontos, troca identidade, edita secoes e vende com conteudo completo.
             </p>
           </div>
         </div>
@@ -256,7 +256,7 @@ export default function LandingPage() {
             {[
               ["1", "Escolha um modelo", "Receptivo, emissivo, hospedagem ou multiuso, com paginas e secoes editaveis."],
               ["2", "Cadastre produtos ricos", "Inclui, nao inclui, roteiro, politica, tarifas, galeria e informacoes importantes."],
-              ["3", "Venda no canal certo", "Basico por WhatsApp. Pro com reservas, pagamentos, CRM, atendimento e dominio proprio."],
+              ["3", "Venda no canal certo", "Basico por WhatsApp com dominio proprio. Pro com reservas, pagamentos, CRM e atendimento."],
             ].map(([number, title, text]) => (
               <div key={number} className="grid grid-cols-[48px_1fr] gap-4 rounded-xl border border-gray-100 bg-[#fbfaf7] p-5">
                 <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#17231f] text-lg font-bold text-[#f7c46c]">{number}</span>
@@ -333,7 +333,7 @@ export default function LandingPage() {
               Trial mostra o caminho. Pro libera a operacao.
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/70">
-              O tenant pode montar a loja, entender o potencial e visualizar recursos profissionais. Para configurar CRM,
+              Sua empresa pode montar a loja, entender o potencial e visualizar recursos profissionais. Para configurar CRM,
               atendimento, WhatsApp Business e envios externos, precisa subir para Pro ou Enterprise.
             </p>
           </div>

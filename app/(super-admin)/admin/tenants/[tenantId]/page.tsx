@@ -15,7 +15,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
   const [{ data: tenant }, { data: domains }] = await Promise.all([
     service
       .from("tenants")
-      .select("*, plans(name, price)")
+      .select("*, plans(name, price_monthly)")
       .eq("id", tenantId)
       .single(),
     service

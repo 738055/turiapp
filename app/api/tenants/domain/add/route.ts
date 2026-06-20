@@ -51,11 +51,11 @@ export async function POST(req: NextRequest) {
   const { domain } = parsed.data;
   const service = createServiceClient();
 
-  // Plan gate: custom domains are a paid feature (not in Basico).
+  // Plan gate: custom domains are controlled by plan limits.
   const planLimits = await getPlanLimits(service, membership.tenant_id);
   if (!featureAllowed(planLimits, "custom_domain")) {
     return NextResponse.json(
-      { error: "Dominio proprio nao esta incluido no seu plano. Faca upgrade para o Pro para usar seu dominio." },
+      { error: "Dominio proprio nao esta incluido no seu plano." },
       { status: 403 }
     );
   }
