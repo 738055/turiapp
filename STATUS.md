@@ -23,7 +23,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Atendimento WhatsApp:** chat agora envia e renderiza mídia dentro da janela de 24h: imagem, áudio, vídeo e documentos, com `media_url` em `messages` e upload no bucket `media`
 - **Gating de planos:** limites de plano (`booking_engine`/`custom_domain`/`pixel_integrations`) agora **realmente aplicados** no backend + UI de upsell — antes só contagem de produtos/usuários era enforçada (furo de monetização fechado)
 - **Revisão geral + correções:** 2 bugs de constraint corrigidos (`ssl_status` e `subscription_status` — ambos travariam produção); fluxo de domínio próprio aprimorado (A+CNAME sempre, 3 estados, DNS persistido)
-- **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve hosts de tenant para `app/(public)` inclusive na rota `/`, e o painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
+- **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve apenas a raiz `/` para a rota interna `/storefront` e mantém `/busca`, `/produto/...` etc no roteamento público normal; painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
 
 ---
 

@@ -119,10 +119,19 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("x-tenant-id", tenant.tenantId);
     requestHeaders.set("x-tenant-slug", tenant.tenantSlug);
 
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = `/(public)${pathname}`;
+    if (pathname === "/") {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = "/storefront";
 
-    const response = NextResponse.rewrite(rewriteUrl, {
+      const response = NextResponse.rewrite(rewriteUrl, {
+        request: { headers: requestHeaders },
+      });
+      response.headers.set("x-tenant-id", tenant.tenantId);
+      response.headers.set("x-tenant-slug", tenant.tenantSlug);
+      return response;
+    }
+
+    const response = NextResponse.next({
       request: { headers: requestHeaders },
     });
     response.headers.set("x-tenant-id", tenant.tenantId);
