@@ -29,6 +29,14 @@ function nightsBetween(checkin?: string | null, checkout?: string | null): numbe
   return Math.max(1, n);
 }
 
+function rateCoversDate(rate: { valid_from?: string | null; valid_to?: string | null }, checkin: string | null): boolean {
+  if (!checkin) return false;
+  const selected = checkin.slice(0, 10);
+  if (rate.valid_from && selected < rate.valid_from.slice(0, 10)) return false;
+  if (rate.valid_to && selected > rate.valid_to.slice(0, 10)) return false;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
   const rl = await enforceRateLimit({ key: `cart:${ip}`, limit: 10, windowMs: 10 * 60 * 1000 });
@@ -56,14 +64,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Um dos itens do carrinho não está mais disponível." }, { status: 400 });
     }
 
+    if (!item.checkin) {
+      return NextResponse.json({ error: "Selecione a data em todos os itens do carrinho." }, { status: 400 });
+    }
+
     const { data: rate } = await service
       .from("product_rates")
-      .select("id, price, currency, rate_type")
+      .select("id, price, currency, rate_type, valid_from, valid_to, occupancy_min, occupancy_max, available")
       .eq("id", item.rate_id)
       .eq("product_id", item.product_id)
+      .eq("available", true)
       .maybeSingle();
     if (!rate) {
       return NextResponse.json({ error: "Tarifa inválida em um dos itens." }, { status: 400 });
+    }
+
+    if (!rateCoversDate(rate, item.checkin)) {
+      return NextResponse.json({ error: "Uma tarifa nao esta disponivel para a data selecionada." }, { status: 400 });
+    }
+    if (item.guests < rate.occupancy_min || item.guests > rate.occupancy_max) {
+      return NextResponse.json({ error: "Quantidade de pessoas fora da faixa permitida em um item." }, { status: 400 });
+    }
+    if (rate.rate_type === "per_night" && !item.checkout) {
+      return NextResponse.json({ error: "Informe check-out para tarifas por noite." }, { status: 400 });
     }
 
     let total = Number(rate.price);

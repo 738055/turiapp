@@ -37,7 +37,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
   if (!product) notFound();
 
-  const p = product as unknown as Product & { rates: ProductRate[] };
+  const rawProduct = product as unknown as Product & { rates: ProductRate[] };
+  const p = {
+    ...rawProduct,
+    rates: (rawProduct.rates ?? []).filter((rate) => rate.available !== false),
+  };
   const limits = await getPlanLimits(createServiceClient(), membership.tenant_id);
   const bookingEngineAllowed = featureAllowed(limits, "booking_engine");
 

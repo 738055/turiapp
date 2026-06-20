@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail, renderVoucherHtml, renderReviewRequestEmailHtml } from "@/lib/email/resend";
@@ -130,17 +129,33 @@ export async function POST(req: NextRequest) {
   }
 
   const newStatus = ACTION_STATUS[action];
-  const { data: updatedBooking, error: updateError } = await service
+  if (booking.status === newStatus) {
+    return NextResponse.json({ message: "Reserva ja esta neste status.", status: booking.status });
+  }
+
+  const { error: updateError } = await service
     .from("bookings")
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .update({ status: newStatus })
+    .eq("id", booking_id)
+    .eq("tenant_id", tenant_id);
+
+  if (updateError) {
+    return NextResponse.json(
+      { error: updateError.message ?? "Nao foi possivel atualizar a reserva." },
+      { status: 500 }
+    );
+  }
+
+  const { data: updatedBooking, error: readAfterWriteError } = await service
+    .from("bookings")
+    .select("id, status")
     .eq("id", booking_id)
     .eq("tenant_id", tenant_id)
-    .select("id, status")
     .single();
 
-  if (updateError || !updatedBooking) {
+  if (readAfterWriteError || !updatedBooking || updatedBooking.status !== newStatus) {
     return NextResponse.json(
-      { error: updateError?.message ?? "Nao foi possivel atualizar a reserva." },
+      { error: readAfterWriteError?.message ?? "A reserva nao confirmou a troca de status." },
       { status: 500 }
     );
   }
@@ -177,9 +192,6 @@ export async function POST(req: NextRequest) {
     complete: "Reserva marcada como concluída.",
     refund: "Reserva marcada como reembolsada.",
   };
-
-  revalidatePath("/reservas");
-  revalidatePath(`/reservas/${booking_id}`);
 
   return NextResponse.json({ message: labels[action], status: updatedBooking.status });
 }

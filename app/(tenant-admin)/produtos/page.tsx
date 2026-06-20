@@ -24,7 +24,7 @@ export default async function ProdutosPage() {
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, title, type, module, status, sale_mode, updated_at, rates:product_rates(price, currency)")
+    .select("id, title, type, module, status, sale_mode, updated_at, rates:product_rates(price, currency, available)")
     .eq("tenant_id", membership!.tenant_id)
     .order("created_at", { ascending: false });
 
@@ -57,7 +57,8 @@ export default async function ProdutosPage() {
           </h2>
           <div className="space-y-2">
             {items?.map((p) => {
-              const rates = p.rates as { price: number; currency: string }[] | null;
+              const rates = (p.rates as { price: number; currency: string; available?: boolean }[] | null)
+                ?.filter((rate) => rate.available !== false);
               const lowestRate = rates?.reduce(
                 (min, r) => (r.price < min.price ? r : min),
                 rates[0]

@@ -44,6 +44,10 @@ export async function POST(req: NextRequest) {
   const d = parsed.data;
   const service = createServiceClient();
 
+  if (!d.checkin) {
+    return NextResponse.json({ error: "Selecione a data para consultar as tarifas." }, { status: 400 });
+  }
+
   // Verify product belongs to tenant and is published
   const { data: product } = await service
     .from("products")
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   const { data: rate } = await service
     .from("product_rates")
-    .select("id, price, currency, rate_type, occupancy_min, occupancy_max, available")
+    .select("id, price, currency, rate_type, occupancy_min, occupancy_max, available, valid_from, valid_to")
     .eq("id", d.rate_id)
     .eq("product_id", d.product_id)
     .eq("available", true)
@@ -74,6 +78,10 @@ export async function POST(req: NextRequest) {
 
   if (!rate) {
     return NextResponse.json({ error: "Tarifa indisponivel." }, { status: 400 });
+  }
+
+  if (!rateCoversDate(rate, d.checkin)) {
+    return NextResponse.json({ error: "Esta tarifa nao esta disponivel para a data selecionada." }, { status: 400 });
   }
 
   if (d.guests < rate.occupancy_min || d.guests > rate.occupancy_max) {
@@ -207,6 +215,14 @@ function calculateBookingTotal({
   const end = new Date(`${checkout}T12:00:00`);
   const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   return price * Math.max(1, nights);
+}
+
+function rateCoversDate(rate: { valid_from?: string | null; valid_to?: string | null }, checkin: string | null): boolean {
+  if (!checkin) return false;
+  const selected = checkin.slice(0, 10);
+  if (rate.valid_from && selected < rate.valid_from.slice(0, 10)) return false;
+  if (rate.valid_to && selected > rate.valid_to.slice(0, 10)) return false;
+  return true;
 }
 
 interface NotifyPayload {

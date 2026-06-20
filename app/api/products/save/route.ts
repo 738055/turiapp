@@ -185,26 +185,105 @@ export async function POST(req: NextRequest) {
     productId = d.product_id;
   }
 
-  // Replace rates
-  await service.from("product_rates").delete().eq("product_id", productId);
-
-  if (d.rates.length > 0) {
-    await service.from("product_rates").insert(
-      d.rates.map((r) => ({
-        product_id: productId,
-        name: r.name,
-        price: r.price,
-        currency: "BRL",
-        rate_type: r.rate_type,
-        valid_from: r.valid_from || null,
-        valid_to: r.valid_to || null,
-        season_name: r.season_name || null,
-        occupancy_min: r.occupancy_min,
-        occupancy_max: r.occupancy_max,
-        available: true,
-      }))
-    );
-  }
+  const ratesResult = await syncProductRates(service, productId, d.rates);
+  if (ratesResult) return ratesResult;
 
   return NextResponse.json({ productId });
+}
+
+type ProductRateInput = z.infer<typeof rateSchema>;
+type ServiceClient = ReturnType<typeof createServiceClient>;
+
+async function syncProductRates(service: ServiceClient, productId: string, rates: ProductRateInput[]) {
+  const { data: existingRates, error: existingError } = await service
+    .from("product_rates")
+    .select("id, available")
+    .eq("product_id", productId);
+
+  if (existingError) {
+    return NextResponse.json({ error: "Erro ao carregar tarifas atuais." }, { status: 500 });
+  }
+
+  const existing = existingRates ?? [];
+  const existingIds = new Set(existing.map((rate) => rate.id as string));
+  const desiredExistingIds = new Set(rates.map((rate) => rate.id).filter((id) => existingIds.has(id)));
+  const removedIds = existing
+    .filter((rate) => rate.available !== false && !desiredExistingIds.has(rate.id as string))
+    .map((rate) => rate.id as string);
+
+  if (removedIds.length > 0) {
+    const usedIds = await findUsedRateIds(service, removedIds);
+    const softDeleteIds = removedIds.filter((id) => usedIds.has(id));
+    const hardDeleteIds = removedIds.filter((id) => !usedIds.has(id));
+
+    if (hardDeleteIds.length > 0) {
+      const { error } = await service.from("product_rates").delete().in("id", hardDeleteIds).eq("product_id", productId);
+      if (error) {
+        const { error: softError } = await service
+          .from("product_rates")
+          .update({ available: false })
+          .in("id", hardDeleteIds)
+          .eq("product_id", productId);
+        if (softError) {
+          return NextResponse.json({ error: "Erro ao remover tarifas." }, { status: 500 });
+        }
+      }
+    }
+
+    if (softDeleteIds.length > 0) {
+      const { error } = await service
+        .from("product_rates")
+        .update({ available: false })
+        .in("id", softDeleteIds)
+        .eq("product_id", productId);
+      if (error) {
+        return NextResponse.json({ error: "Erro ao ocultar tarifas com historico." }, { status: 500 });
+      }
+    }
+  }
+
+  if (rates.length === 0) return null;
+
+  const rows = rates.map((rate) => ({
+    ...(existingIds.has(rate.id) ? { id: rate.id } : {}),
+    product_id: productId,
+    name: rate.name,
+    price: rate.price,
+    currency: "BRL",
+    rate_type: rate.rate_type,
+    valid_from: rate.valid_from || null,
+    valid_to: rate.valid_to || null,
+    season_name: rate.season_name || null,
+    occupancy_min: rate.occupancy_min,
+    occupancy_max: rate.occupancy_max,
+    available: true,
+  }));
+
+  const { error } = await service.from("product_rates").upsert(rows, { onConflict: "id" });
+  if (error) {
+    return NextResponse.json({ error: "Erro ao salvar tarifas." }, { status: 500 });
+  }
+
+  return null;
+}
+
+async function findUsedRateIds(service: ServiceClient, rateIds: string[]): Promise<Set<string>> {
+  const usedIds = new Set<string>();
+  const [bookings, quotes, orderItems] = await Promise.all([
+    service.from("bookings").select("product_rate_id").in("product_rate_id", rateIds),
+    service.from("quotes").select("rate_id").in("rate_id", rateIds),
+    service.from("order_items").select("rate_id").in("rate_id", rateIds),
+  ]);
+
+  for (const row of bookings.data ?? []) {
+    if (row.product_rate_id) usedIds.add(row.product_rate_id as string);
+  }
+  for (const row of quotes.data ?? []) {
+    if (row.rate_id) usedIds.add(row.rate_id as string);
+  }
+  for (const row of orderItems.data ?? []) {
+    if (row.rate_id) usedIds.add(row.rate_id as string);
+  }
+
+  return usedIds;
 }

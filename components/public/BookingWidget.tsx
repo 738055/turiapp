@@ -127,6 +127,7 @@ function RateOptions({
                       ? ` - ${rate.occupancy_min} a ${rate.occupancy_max} pessoas`
                       : ""}
                   </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-gray-400">{ratePeriodLabel(rate)}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-base font-extrabold leading-none" style={{ color: primaryColor }}>
@@ -155,9 +156,10 @@ function WhatsAppOrderWidget({
     checkin: "",
     checkout: "",
     guests: 1,
-    rateId: product.rates?.[0]?.id ?? "",
+    rateId: "",
   });
-  const selectedRate = product.rates?.find((rate) => rate.id === form.rateId);
+  const availableRates = ratesForDate(product.rates, form.checkin);
+  const selectedRate = availableRates.find((rate) => rate.id === form.rateId);
   const usesCheckoutDate = product.module === "hospedagem" || selectedRate?.rate_type === "per_night";
   const dateLabel = product.module === "hospedagem"
     ? "Check-in"
@@ -176,9 +178,17 @@ function WhatsAppOrderWidget({
           ? "Hospedes"
           : "Pessoas";
   const total = selectedRate ? calculateTotal(selectedRate, form.guests, form.checkin, form.checkout) : 0;
+  const ready = !!selectedRate && !!form.checkin && (!usesCheckoutDate || !!form.checkout);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "checkin") {
+        next.rateId = chooseRateForDate(product.rates, String(value), current.rateId);
+        if (next.checkout && dateKey(next.checkout) <= dateKey(String(value))) next.checkout = "";
+      }
+      return next;
+    });
   }
 
   if (!phone) {
@@ -194,9 +204,9 @@ function WhatsAppOrderWidget({
     "Ola! Tenho interesse neste produto:",
     "",
     `Produto: ${product.title}`,
-    selectedRate ? `Tarifa: ${selectedRate.name} - ${formatCurrency(selectedRate.price, selectedRate.currency)} ${rateSuffixLabel(selectedRate.rate_type)}` : null,
     form.checkin ? `${dateLabel}: ${formatInputDate(form.checkin)}` : null,
     usesCheckoutDate && form.checkout ? `Check-out: ${formatInputDate(form.checkout)}` : null,
+    selectedRate ? `Tarifa: ${selectedRate.name} - ${formatCurrency(selectedRate.price, selectedRate.currency)} ${rateSuffixLabel(selectedRate.rate_type)}` : null,
     `${guestsLabel}: ${form.guests}`,
     selectedRate ? `Total estimado: ${formatCurrency(total, selectedRate.currency)}` : null,
     "",
@@ -210,15 +220,6 @@ function WhatsAppOrderWidget({
         <h3 className="font-semibold">Enviar pedido pelo WhatsApp</h3>
         <p className="mt-1 text-xs text-gray-500">Escolha os detalhes e envie uma mensagem pronta para a equipe.</p>
       </div>
-
-      {(product.rates?.length ?? 0) > 0 && (
-        <RateOptions
-          rates={product.rates ?? []}
-          selectedRateId={form.rateId}
-          primaryColor={primaryColor}
-          onSelect={(rateId) => update("rateId", rateId)}
-        />
-      )}
 
       <div className={`grid gap-3 ${usesCheckoutDate ? "grid-cols-2" : "grid-cols-1"}`}>
         <div className="space-y-1">
@@ -244,6 +245,25 @@ function WhatsAppOrderWidget({
           </div>
         )}
       </div>
+
+      {form.checkin ? (
+        availableRates.length > 0 ? (
+          <RateOptions
+            rates={availableRates}
+            selectedRateId={form.rateId}
+            primaryColor={primaryColor}
+            onSelect={(rateId) => update("rateId", rateId)}
+          />
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Nenhuma tarifa cadastrada para esta data.
+          </div>
+        )
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+          Selecione a data para ver as tarifas disponiveis.
+        </div>
+      )}
 
       <div className="space-y-1">
         <Label className="text-xs">{guestsLabel}</Label>
@@ -275,16 +295,27 @@ function WhatsAppOrderWidget({
         </div>
       )}
 
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius,0.5rem)] py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
-        style={{ backgroundColor: "#25D366" }}
-      >
-        <MessageCircle className="h-5 w-5" />
-        Enviar pedido no WhatsApp
-      </a>
+      {ready ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius,0.5rem)] py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "#25D366" }}
+        >
+          <MessageCircle className="h-5 w-5" />
+          Enviar pedido no WhatsApp
+        </a>
+      ) : (
+        <button
+          type="button"
+          disabled
+          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius,0.5rem)] bg-gray-200 py-3 text-base font-semibold text-gray-500"
+        >
+          <MessageCircle className="h-5 w-5" />
+          Selecione data e tarifa
+        </button>
+      )}
     </div>
   );
 }
@@ -301,6 +332,37 @@ function rateSuffixLabel(rateType: ProductRate["rate_type"]): string {
   if (rateType === "per_person") return "/ pessoa";
   if (rateType === "per_group") return "/ grupo";
   return "total";
+}
+
+function ratePeriodLabel(rate: ProductRate): string {
+  if (rate.valid_from && rate.valid_to) {
+    return `${formatInputDate(rate.valid_from)} a ${formatInputDate(rate.valid_to)}`;
+  }
+  if (rate.valid_from) return `A partir de ${formatInputDate(rate.valid_from)}`;
+  if (rate.valid_to) return `Ate ${formatInputDate(rate.valid_to)}`;
+  return "Disponivel em qualquer data";
+}
+
+function dateKey(value?: string | null): string {
+  return value ? value.slice(0, 10) : "";
+}
+
+function rateMatchesDate(rate: ProductRate, checkin: string): boolean {
+  const selected = dateKey(checkin);
+  if (!selected) return false;
+  if (rate.valid_from && selected < dateKey(rate.valid_from)) return false;
+  if (rate.valid_to && selected > dateKey(rate.valid_to)) return false;
+  return true;
+}
+
+function ratesForDate(rates: ProductRate[] | undefined, checkin: string): ProductRate[] {
+  return (rates ?? []).filter((rate) => rate.available !== false && rateMatchesDate(rate, checkin));
+}
+
+function chooseRateForDate(rates: ProductRate[] | undefined, checkin: string, currentRateId: string): string {
+  const options = ratesForDate(rates, checkin);
+  if (options.some((rate) => rate.id === currentRateId)) return currentRateId;
+  return options[0]?.id ?? "";
 }
 
 function alphaColor(hex: string, alpha: number): string {
@@ -356,13 +418,14 @@ function BookingForm({
     checkin: "",
     checkout: "",
     guests: 1,
-    rateId: product.rates?.[0]?.id ?? "",
+    rateId: "",
     name: "",
     email: "",
     phone: "",
   });
 
-  const selectedRate = product.rates?.find((r) => r.id === form.rateId);
+  const availableRates = ratesForDate(product.rates, form.checkin);
+  const selectedRate = availableRates.find((r) => r.id === form.rateId);
   const usesCheckoutDate = product.module === "hospedagem" || selectedRate?.rate_type === "per_night";
   const dateLabel = product.module === "hospedagem"
     ? "Check-in"
@@ -378,11 +441,19 @@ function BookingForm({
       : product.module === "emissivo"
         ? "Viajantes"
         : product.module === "hospedagem"
-          ? "Hospedes"
-          : "Pessoas";
+        ? "Hospedes"
+        : "Pessoas";
+  const selectionReady = !!selectedRate && !!form.checkin && (!usesCheckoutDate || !!form.checkout);
 
   function update<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "checkin") {
+        next.rateId = chooseRateForDate(product.rates, String(value), current.rateId);
+        if (next.checkout && dateKey(next.checkout) <= dateKey(String(value))) next.checkout = "";
+      }
+      return next;
+    });
   }
 
   function calcTotal(): number {
@@ -480,7 +551,7 @@ function BookingForm({
       </div>
 
       {/* Rate selector */}
-      {(product.rates?.length ?? 0) > 0 && (
+      {false && (product.rates?.length ?? 0) > 0 && (
         <RateOptions
           rates={product.rates ?? []}
           selectedRateId={form.rateId}
@@ -532,6 +603,25 @@ function BookingForm({
         )}
       </div>
 
+      {form.checkin ? (
+        availableRates.length > 0 ? (
+          <RateOptions
+            rates={availableRates}
+            selectedRateId={form.rateId}
+            primaryColor={primaryColor}
+            onSelect={(rateId) => update("rateId", rateId)}
+          />
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Nenhuma tarifa cadastrada para esta data.
+          </div>
+        )
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+          Selecione a data para ver as tarifas disponiveis.
+        </div>
+      )}
+
       {/* Guests */}
       <div className="space-y-1">
         <Label className="text-xs">{guestsLabel}</Label>
@@ -558,7 +648,7 @@ function BookingForm({
             className="w-full"
             onClick={() => setStep("contact")}
             style={{ backgroundColor: primaryColor }}
-            disabled={!form.rateId}
+            disabled={!selectionReady}
           >
             {hasOnlinePayment ? "Reservar e pagar" : "Enviar pre-reserva"}
           </Button>
@@ -566,7 +656,7 @@ function BookingForm({
             variant="outline"
             className="w-full"
             onClick={handleAddToCart}
-            disabled={!form.rateId}
+            disabled={!selectionReady}
           >
             {added ? (
               <><Check className="h-4 w-4 mr-1" /> Adicionado ao carrinho</>
@@ -635,7 +725,7 @@ function BookingForm({
             <Button
               className="flex-1"
               onClick={handleBook}
-              disabled={isPending || !form.name || !form.email}
+              disabled={isPending || !form.name || !form.email || !selectionReady}
               style={{ backgroundColor: primaryColor }}
             >
               {isPending ? "Reservando..." : hasOnlinePayment ? "Confirmar e ir ao pagamento" : "Confirmar pre-reserva"}
