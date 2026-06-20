@@ -74,6 +74,13 @@ ve preview em tempo real e recebe uma copia editavel de:
 - primeiro produto com campos ricos;
 - layout de cards e hero.
 
+Os modelos ficam separados por tipo para facilitar a escolha do tenant:
+
+- Multiuso: Turismo Direto;
+- Receptivo: Receptivo Premium, Aventura Local, Ingressos & Atrativos e Transfer Executivo;
+- Emissivo: Agencia de Pacotes, Viagens Premium, Cruzeiros & Grupos, Excursoes Rodoviarias e Intercambio & Estudos;
+- Hospedagem: Hospedagem Boutique, Resort & Day Use, Chales & Natureza, Hotel Executivo e Temporada Familiar.
+
 Depois da criacao da loja, o painel `/temas` permite escolher outro modelo,
 previsualizar o resultado ao vivo, salvar apenas o visual ou aplicar o modelo
 completo na loja. Aplicar o modelo atualiza home, paginas prontas e menu, mas

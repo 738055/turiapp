@@ -8,7 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/ui/ImageUpload";
-import { STORE_TEMPLATES, getStoreTemplate, type StoreTemplate, type StoreTemplateTheme } from "@/lib/store-templates";
+import {
+  STORE_TEMPLATE_GROUPS,
+  STORE_TEMPLATES,
+  getStoreTemplate,
+  type StoreTemplate,
+  type StoreTemplateTheme,
+} from "@/lib/store-templates";
 import type { CardType, MenuType, Theme } from "@/types";
 import {
   Check,
@@ -151,41 +157,35 @@ export function ThemeEditor({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-2">
-              {STORE_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => applyTemplate(template.id)}
-                  className={`rounded-lg border p-3 text-left transition-all hover:border-sky-300 hover:bg-sky-50/40 ${
-                    selectedTemplateId === template.id ? "border-sky-500 bg-sky-50 shadow-sm" : "border-gray-200"
-                  }`}
-                >
-                  <div
-                    className="mb-3 h-20 rounded-md bg-cover bg-center"
-                    style={{
-                      backgroundImage: `linear-gradient(135deg, ${template.theme.secondary_color}cc, ${template.theme.primary_color}55), url(${heroImage(template)})`,
-                    }}
-                  />
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{template.name}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-gray-500">{template.description}</p>
+            <div className="space-y-6">
+              {STORE_TEMPLATE_GROUPS.map((group) => {
+                const templates = STORE_TEMPLATES.filter((template) => template.category === group.category);
+                if (!templates.length) return null;
+
+                return (
+                  <section key={group.category} className="space-y-3">
+                    <div className="flex flex-wrap items-end justify-between gap-2 border-b border-gray-100 pb-2">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{group.label}</p>
+                        <p className="text-xs text-gray-500">{group.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {templates.length} modelos
+                      </Badge>
                     </div>
-                    {selectedTemplateId === template.id && <Check className="h-4 w-4 flex-shrink-0 text-sky-600" />}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium uppercase text-gray-500">
-                      {template.category}
-                    </span>
-                    {template.bestFor.slice(0, 2).map((item) => (
-                      <span key={item} className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-500">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              ))}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {templates.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          selected={selectedTemplateId === template.id}
+                          onSelect={() => applyTemplate(template.id)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -349,6 +349,47 @@ export function ThemeEditor({
         </div>
       </aside>
     </div>
+  );
+}
+
+function TemplateCard({
+  template,
+  selected,
+  onSelect,
+}: {
+  template: StoreTemplate;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`rounded-lg border p-3 text-left transition-all hover:border-sky-300 hover:bg-sky-50/40 ${
+        selected ? "border-sky-500 bg-sky-50 shadow-sm" : "border-gray-200"
+      }`}
+    >
+      <div
+        className="mb-3 h-20 rounded-md bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${template.theme.secondary_color}cc, ${template.theme.primary_color}55), url(${heroImage(template)})`,
+        }}
+      />
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{template.name}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-gray-500">{template.description}</p>
+        </div>
+        {selected && <Check className="h-4 w-4 flex-shrink-0 text-sky-600" />}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {template.bestFor.slice(0, 3).map((item) => (
+          <span key={item} className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-500">
+            {item}
+          </span>
+        ))}
+      </div>
+    </button>
   );
 }
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { slugify } from "@/lib/utils";
-import { STORE_TEMPLATES, getStoreTemplate } from "@/lib/store-templates";
+import { STORE_TEMPLATE_GROUPS, STORE_TEMPLATES, getStoreTemplate } from "@/lib/store-templates";
 import {
   Building2,
   Palette,
@@ -383,9 +383,21 @@ function StepModelo({ data, applyTemplate }: {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">Escolha o modelo inicial. Ele vira uma copia editavel da loja.</p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {STORE_TEMPLATES.map((t) => (
+      <div className="space-y-5">
+        {STORE_TEMPLATE_GROUPS.map((group) => {
+          const templates = STORE_TEMPLATES.filter((template) => template.category === group.category);
+          if (!templates.length) return null;
+
+          return (
+            <section key={group.category} className="space-y-2">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{group.label}</p>
+                <p className="text-xs text-gray-500">{group.description}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {templates.map((t) => (
           <button
+            type="button"
             key={t.id}
             onClick={() => applyTemplate(t.id)}
             className={`rounded-xl border-2 p-4 text-left transition-all hover:border-sky-300 ${
@@ -399,7 +411,11 @@ function StepModelo({ data, applyTemplate }: {
             <p className="mt-0.5 text-xs text-gray-500">{t.description}</p>
             <p className="mt-2 text-[10px] uppercase tracking-wide text-gray-400">{t.category} · {t.source}</p>
           </button>
-        ))}
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
       <div className="rounded-xl border border-gray-200 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
