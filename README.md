@@ -68,13 +68,15 @@ nativos em `lib/store-templates.ts`. No onboarding, o tenant escolhe um modelo,
 ve preview em tempo real e recebe uma copia editavel de:
 
 - tema visual;
-- secoes da home;
+- paginas prontas: home, sobre, FAQ, contato, termos e privacidade;
+- menu/header publico;
+- secoes com estilo do modelo;
 - primeiro produto com campos ricos;
 - layout de cards e hero.
 
 Depois da criacao da loja, o painel `/temas` permite escolher outro modelo,
 previsualizar o resultado ao vivo, salvar apenas o visual ou aplicar o modelo
-completo na home. Aplicar o modelo substitui as secoes da pagina inicial, mas
+completo na loja. Aplicar o modelo atualiza home, paginas prontas e menu, mas
 mantem os produtos cadastrados.
 
 O produto usa `extra_data` para alimentar o design com informacoes como duracao,

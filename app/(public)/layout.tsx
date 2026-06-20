@@ -4,10 +4,13 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { AnalyticsScripts, GTMNoScript } from "@/components/public/AnalyticsScripts";
 import { CookieConsent } from "@/components/public/CookieConsent";
 import { CartButton } from "@/components/public/CartButton";
-import type { Theme } from "@/types";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import type { NavItem, Theme } from "@/types";
 
 interface TenantPublicData {
+  tenant: { name: string } | null;
   theme: Theme | null;
+  navItems: NavItem[];
   integrations: {
     google_analytics_id?: string | null;
     google_tag_manager_id?: string | null;
@@ -22,7 +25,8 @@ interface TenantPublicData {
 
 async function getTenantPublicData(tenantId: string): Promise<TenantPublicData> {
   const supabase = createServiceClient();
-  const [{ data: theme }, { data: integrations }] = await Promise.all([
+  const [{ data: tenant }, { data: theme }, { data: integrations }, { data: navItems }] = await Promise.all([
+    supabase.from("tenants").select("name").eq("id", tenantId).single(),
     supabase.from("themes").select("*").eq("tenant_id", tenantId).single(),
     supabase
       .from("tenant_integrations")
@@ -31,8 +35,13 @@ async function getTenantPublicData(tenantId: string): Promise<TenantPublicData> 
       )
       .eq("tenant_id", tenantId)
       .single(),
+    supabase
+      .from("navigation_items")
+      .select("id, tenant_id, label, href, order, target")
+      .eq("tenant_id", tenantId)
+      .order("order", { ascending: true }),
   ]);
-  return { theme: theme as Theme | null, integrations };
+  return { tenant, theme: theme as Theme | null, integrations, navItems: (navItems ?? []) as NavItem[] };
 }
 
 export default async function PublicLayout({
@@ -49,7 +58,7 @@ export default async function PublicLayout({
 
   if (!tenantId) notFound();
 
-  const { theme, integrations } = await getTenantPublicData(tenantId);
+  const { tenant, theme, navItems, integrations } = await getTenantPublicData(tenantId);
 
   const cssVars = theme
     ? {
@@ -73,7 +82,11 @@ export default async function PublicLayout({
         <GTMNoScript gtmId={integrations.google_tag_manager_id} />
       )}
 
-      {children}
+      <PublicHeader tenantName={tenant?.name ?? "Minha Loja"} theme={theme} navItems={navItems} />
+
+      <div className={theme?.menu_type === "sidebar" ? "flex min-h-screen flex-col lg:pl-72" : "flex min-h-screen flex-col"}>
+        {children}
+      </div>
 
       {/* Floating multi-product cart indicator (hidden when empty) */}
       <CartButton />

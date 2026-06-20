@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import type { PageSection, Theme } from "@/types";
 
 interface Testimonial {
@@ -15,21 +16,31 @@ interface TestimonialsConfig {
 export function TestimonialsSection({ section }: { section: PageSection; theme: Theme | null; tenantId: string }) {
   const cfg = (section.config ?? {}) as TestimonialsConfig;
   const items = cfg.items ?? [];
+
   return (
-    <section className="py-12 px-6 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
-        {cfg.title && <h2 className="text-3xl font-bold text-center mb-8">{cfg.title}</h2>}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {items.map((t, i) => (
-            <div key={i} className="bg-white rounded-[var(--radius)] p-6 shadow-sm">
-              <div className="flex gap-1 mb-3">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <span key={j} className={j < t.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
+    <section className="relative overflow-hidden bg-[var(--color-secondary)] px-4 py-20 text-white sm:px-6 lg:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_32rem)]" />
+      <div className="relative mx-auto max-w-7xl">
+        {cfg.title && (
+          <div className="mb-10 max-w-2xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-accent)]">Prova social</p>
+            <h2 className="text-3xl font-extrabold md:text-4xl">{cfg.title}</h2>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {items.map((testimonial, index) => (
+            <article key={`${testimonial.name}-${index}`} className="rounded-2xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-md">
+              <div className="mb-4 flex gap-1">
+                {Array.from({ length: 5 }).map((_, star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${star < testimonial.rating ? "fill-[var(--color-accent)] text-[var(--color-accent)]" : "text-white/25"}`}
+                  />
                 ))}
               </div>
-              <p className="text-gray-600 text-sm italic mb-4">&ldquo;{t.text}&rdquo;</p>
-              <p className="text-sm font-semibold text-gray-800">{t.name}</p>
-            </div>
+              <p className="mb-5 text-sm leading-relaxed text-white/80">&ldquo;{testimonial.text}&rdquo;</p>
+              <p className="text-sm font-bold text-white">{testimonial.name}</p>
+            </article>
           ))}
         </div>
       </div>

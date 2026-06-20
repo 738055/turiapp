@@ -5,7 +5,7 @@ import { z } from "zod";
 // Note: z.record in Zod v4 requires (keyType, valueType) signature
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { roleAtLeast } from "@/lib/auth/roles";
-import { getStoreTemplate, materializeStoreTemplateSections } from "@/lib/store-templates";
+import { getStoreTemplate, materializeStoreTemplateNavigation, materializeStoreTemplatePages } from "@/lib/store-templates";
 
 const schema = z.object({
   tenant_id: z.string().uuid(),
@@ -82,60 +82,66 @@ export async function POST(req: NextRequest) {
       service.from("tenant_integrations").select("whatsapp_number").eq("tenant_id", d.tenant_id).maybeSingle(),
     ]);
 
-    const { data: existingHome } = await service
-      .from("pages")
-      .select("id")
-      .eq("tenant_id", d.tenant_id)
-      .eq("is_home", true)
-      .maybeSingle();
-
-    const page =
-      existingHome ??
-      (
-        await service
-          .from("pages")
-          .insert({
-            tenant_id: d.tenant_id,
-            slug: "inicio",
-            title: "Inicio",
-            status: "published",
-            is_home: true,
-            show_in_nav: true,
-            nav_order: 0,
-            template: template.id,
-          })
-          .select("id")
-          .single()
-      ).data;
-
-    if (!page) {
-      return NextResponse.json({ error: "Tema salvo, mas nao foi possivel aplicar o modelo." }, { status: 500 });
-    }
-
-    await service
-      .from("pages")
-      .update({ template: template.id, updated_at: new Date().toISOString() })
-      .eq("id", page.id)
-      .eq("tenant_id", d.tenant_id);
-
-    await service.from("page_sections").delete().eq("page_id", page.id);
-
-    const sections = materializeStoreTemplateSections(template, {
+    const templatePages = materializeStoreTemplatePages(template, {
       companyName: tenant?.name ?? "Minha Loja",
       whatsapp: integration?.whatsapp_number ?? null,
     });
 
-    if (sections.length > 0) {
-      await service.from("page_sections").insert(
-        sections.map((section, index) => ({
-          page_id: page.id,
-          type: section.type,
-          order: index,
-          visible: section.visible,
-          config: section.config,
-        }))
-      );
+    const { data: upsertedPages } = await service
+      .from("pages")
+      .upsert(
+        templatePages.map((page) => ({
+          tenant_id: d.tenant_id,
+          slug: page.slug,
+          title: page.title,
+          seo_title: page.seo_title ?? null,
+          seo_description: page.seo_description ?? null,
+          status: page.status ?? "published",
+          is_home: page.is_home ?? false,
+          show_in_nav: page.show_in_nav ?? true,
+          nav_order: page.nav_order ?? 99,
+          template: template.id,
+          updated_at: new Date().toISOString(),
+        })),
+        { onConflict: "tenant_id,slug" }
+      )
+      .select("id, slug");
+
+    if (!upsertedPages?.length) {
+      return NextResponse.json({ error: "Tema salvo, mas nao foi possivel aplicar o modelo." }, { status: 500 });
     }
+
+    const pageIds = upsertedPages.map((page) => page.id);
+    await service.from("page_sections").delete().in("page_id", pageIds);
+
+    const pageBySlug = new Map(upsertedPages.map((page) => [page.slug, page.id]));
+    const sections = templatePages.flatMap((page) => {
+      const pageId = pageBySlug.get(page.slug);
+      if (!pageId) return [];
+      return page.sections.map((section, index) => ({
+        page_id: pageId,
+        type: section.type,
+        order: index,
+        visible: section.visible,
+        config: section.config,
+      }));
+    });
+
+    if (sections.length) {
+      await service.from("page_sections").insert(sections);
+    }
+
+    await service.from("navigation_items").delete().eq("tenant_id", d.tenant_id);
+    const navItems = materializeStoreTemplateNavigation(template);
+    await service.from("navigation_items").insert(
+      navItems.map((item) => ({
+        tenant_id: d.tenant_id,
+        label: item.label,
+        href: item.href,
+        order: item.order,
+        target: item.target ?? "_self",
+      }))
+    );
   }
 
   return NextResponse.json({ ok: true });

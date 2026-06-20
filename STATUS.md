@@ -24,7 +24,7 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Gating de planos:** limites de plano (`booking_engine`/`custom_domain`/`pixel_integrations`) agora **realmente aplicados** no backend + UI de upsell — antes só contagem de produtos/usuários era enforçada (furo de monetização fechado)
 - **Revisão geral + correções:** 2 bugs de constraint corrigidos (`ssl_status` e `subscription_status` — ambos travariam produção); fluxo de domínio próprio aprimorado (A+CNAME sempre, 3 estados, DNS persistido)
 - **Dominios de tenant em teste:** proxy libera storefront para tenants `active` e `trial`, reescreve apenas a raiz `/` para a rota interna `/storefront` e mantém `/busca`, `/produto/...` etc no roteamento público normal; painel de domínio aceita FQDN/subdomínio `.com.br` com CNAME correto para hosts como `rotas-e-horizontes.nitromethanebrasil.com.br`
-- **Storefront por modelos reais:** cards, busca e pagina de produto agora reutilizam os estilos dos projetos em `references/projetos-base/` (marketplace/receptivo e editorial/hospedagem), com galeria, inclusos, nao-inclusos, roteiro, politica, tarifas e placeholders visuais profissionais alimentados pelo CRUD do tenant
+- **Storefront por modelos reais:** templates agora criam loja completa editavel (home, sobre, FAQ, contato, termos, privacidade e menu/header publico), e cards, busca e pagina de produto reutilizam os estilos dos projetos em `references/projetos-base/` (marketplace/receptivo e editorial/hospedagem), com galeria, inclusos, nao-inclusos, roteiro, politica, tarifas e placeholders visuais profissionais alimentados pelo CRUD do tenant
 
 ---
 

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // Verify ownership
   const { data: page } = await service
     .from("pages")
-    .select("id")
+    .select("id, slug, nav_order")
     .eq("id", page_id)
     .eq("tenant_id", tenant_id)
     .single();
@@ -58,6 +58,18 @@ export async function POST(req: NextRequest) {
     status: meta.status,
     updated_at: new Date().toISOString(),
   }).eq("id", page_id);
+
+  const href = page.slug === "inicio" ? "/" : `/${page.slug}`;
+  await service.from("navigation_items").delete().eq("tenant_id", tenant_id).eq("href", href);
+  if (meta.show_in_nav) {
+    await service.from("navigation_items").insert({
+      tenant_id,
+      label: meta.title,
+      href,
+      order: page.nav_order ?? 99,
+      target: "_self",
+    });
+  }
 
   // Replace all sections: delete old, insert new
   await service.from("page_sections").delete().eq("page_id", page_id);

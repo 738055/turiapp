@@ -85,6 +85,7 @@ export function ThemeEditor({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [savedLabel, setSavedLabel] = useState<string | null>(null);
+  const [previewNonce, setPreviewNonce] = useState(() => Date.now());
   const [logoUrl, setLogoUrl] = useState<string | null>(initialTheme?.logo_url ?? null);
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate || "turismo-basico");
   const [theme, setTheme] = useState<EditableTheme>({
@@ -130,7 +131,8 @@ export function ThemeEditor({
       });
 
       if (res.ok) {
-        setSavedLabel(applyTemplateToHome ? "Modelo aplicado na home" : "Visual salvo");
+        setSavedLabel(applyTemplateToHome ? "Modelo aplicado na loja" : "Visual salvo");
+        setPreviewNonce(Date.now());
         router.refresh();
       }
     });
@@ -329,7 +331,7 @@ export function ThemeEditor({
               {savedLabel ?? "Alteracoes ainda nao salvas"}
             </p>
             <p className="text-xs text-gray-500">
-              Aplicar modelo completo substitui as secoes da pagina inicial, sem apagar produtos.
+              Aplicar modelo completo atualiza menu, home e paginas prontas, sem apagar produtos.
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
@@ -343,7 +345,7 @@ export function ThemeEditor({
             </Button>
             <Button onClick={() => handleSave(true)} disabled={isPending} style={{ backgroundColor: theme.primary_color }}>
               <Sparkles className="h-4 w-4" />
-              {isPending ? "Aplicando..." : "Aplicar modelo"}
+              {isPending ? "Aplicando..." : "Aplicar modelo completo"}
             </Button>
           </div>
         </div>
@@ -361,6 +363,20 @@ export function ThemeEditor({
           <Badge variant="secondary" className="text-xs">
             Preview ao vivo
           </Badge>
+          {storeUrl && (
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+                <span className="text-xs font-semibold text-gray-500">Loja real</span>
+                <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-600">Abrir</a>
+              </div>
+              <iframe
+                key={previewNonce}
+                src={`${storeUrl}${storeUrl.includes("?") ? "&" : "?"}preview=${previewNonce}`}
+                className="h-[520px] w-full"
+                title="Preview da loja real"
+              />
+            </div>
+          )}
         </div>
       </aside>
     </div>

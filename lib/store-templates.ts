@@ -19,6 +19,25 @@ export interface StoreTemplateSection {
   config: Record<string, unknown>;
 }
 
+export interface StoreTemplatePage {
+  slug: string;
+  title: string;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  status?: "draft" | "published";
+  is_home?: boolean;
+  show_in_nav?: boolean;
+  nav_order?: number;
+  sections: StoreTemplateSection[];
+}
+
+export interface StoreTemplateNavItem {
+  label: string;
+  href: string;
+  order: number;
+  target?: "_self" | "_blank";
+}
+
 export interface StoreTemplateProductDefaults {
   module: "hospedagem" | "receptivo" | "emissivo";
   type: string;
@@ -36,6 +55,8 @@ export interface StoreTemplate {
   bestFor: string[];
   theme: StoreTemplateTheme;
   sections: StoreTemplateSection[];
+  pages?: StoreTemplatePage[];
+  navItems?: StoreTemplateNavItem[];
   productDefaults: StoreTemplateProductDefaults;
 }
 
@@ -241,10 +262,143 @@ export function materializeStoreTemplateSections(
     }
     if (section.type === "footer") {
       config.company_name = companyName;
+      if (!Array.isArray(config.links)) {
+        config.links = defaultFooterLinks();
+      }
     }
 
     return { ...section, config };
   });
+}
+
+export function materializeStoreTemplatePages(
+  template: StoreTemplate,
+  opts: { companyName?: string | null; whatsapp?: string | null } = {}
+): StoreTemplatePage[] {
+  const pages = [
+    {
+      slug: "inicio",
+      title: "Inicio",
+      status: "published" as const,
+      is_home: true,
+      show_in_nav: true,
+      nav_order: 0,
+      sections: template.sections,
+    },
+    ...(template.pages ?? defaultTemplatePages(template)),
+  ];
+
+  return pages.map((page) => ({
+    ...page,
+    seo_title: page.seo_title ?? page.title,
+    seo_description: page.seo_description ?? template.description,
+    status: page.status ?? "published",
+    show_in_nav: page.show_in_nav ?? true,
+    nav_order: page.nav_order ?? 99,
+    is_home: page.is_home ?? false,
+    sections: materializeStoreTemplateSections({ ...template, sections: page.sections }, opts),
+  }));
+}
+
+export function materializeStoreTemplateNavigation(template: StoreTemplate): StoreTemplateNavItem[] {
+  return template.navItems ?? [
+    { label: "Inicio", href: "/", order: 0 },
+    { label: template.category === "hospedagem" ? "Acomodacoes" : "Produtos", href: "/busca", order: 1 },
+    { label: "Sobre", href: "/sobre", order: 2 },
+    { label: "FAQ", href: "/faq", order: 3 },
+    { label: "Contato", href: "/contato", order: 4 },
+  ];
+}
+
+function defaultTemplatePages(template: StoreTemplate): StoreTemplatePage[] {
+  const image = heroImageFromTemplate(template);
+  const isHospedagem = template.category === "hospedagem";
+  const productLabel = isHospedagem ? "acomodacoes" : template.category === "emissivo" ? "pacotes" : "experiencias";
+  const aboutText = isHospedagem
+    ? "Receba hospedes com uma vitrine editorial: fotos grandes, informacoes claras, regras de reserva e detalhes de conforto em uma experiencia simples de editar."
+    : template.category === "emissivo"
+      ? "Organize pacotes, saidas em grupo e viagens sob medida em paginas comerciais prontas para o cliente entender roteiro, inclusos, condicoes e canais de compra."
+      : "Venda passeios, transfers, ingressos e experiencias locais com uma estrutura pensada para conversao: busca clara, cards ricos, roteiro, inclusos e atendimento rapido.";
+
+  return [
+    {
+      slug: "sobre",
+      title: "Sobre",
+      nav_order: 2,
+      sections: [
+        hero("Sobre a {{company_name}}", `Conheca nossa curadoria de ${productLabel} e a forma como cuidamos de cada atendimento.`, "Ver produtos", "/busca", image, isHospedagem ? "editorial" : "marketplace"),
+        about("Uma loja pronta para vender com elegancia", aboutText, image),
+        testimonials([
+          { name: "Cliente verificado", rating: 5, text: "As informacoes ficam claras, bonitas e faceis de editar no painel." },
+          { name: "Viajante atendido", rating: 5, text: "Consegui comparar opcoes e entrar em contato sem depender de troca infinita de mensagens." },
+          { name: "Equipe comercial", rating: 5, text: "O modelo ja vem com a estrutura que uma loja de turismo precisa para vender." },
+        ]),
+        footer(template.description),
+      ],
+    },
+    {
+      slug: "faq",
+      title: "FAQ",
+      nav_order: 3,
+      sections: [
+        hero("Duvidas frequentes", "Respostas prontas para reduzir atrito antes da compra. Edite conforme sua operacao.", "Falar com a equipe", "/contato", image, isHospedagem ? "editorial" : "marketplace"),
+        faq(),
+        contact(),
+        footer(template.description),
+      ],
+    },
+    {
+      slug: "contato",
+      title: "Contato",
+      nav_order: 4,
+      sections: [
+        hero("Fale com a equipe", "Tire duvidas, solicite cotacoes e receba atendimento para escolher a melhor opcao.", "Buscar produtos", "/busca", image, isHospedagem ? "editorial" : "marketplace"),
+        contact(),
+        faq([
+          { question: "Quanto tempo demora o atendimento?", answer: "Personalize esta resposta com o prazo real de retorno da sua equipe." },
+          { question: "Posso pedir uma cotacao sob medida?", answer: "Sim. Use o formulario ou WhatsApp para solicitar uma proposta personalizada." },
+        ]),
+        footer(template.description),
+      ],
+    },
+    {
+      slug: "termos",
+      title: "Termos de uso",
+      show_in_nav: false,
+      nav_order: 90,
+      sections: [
+        hero("Termos de uso", "Condicoes gerais para uso da loja e contratacao dos servicos.", "Voltar ao inicio", "/", image, "classic"),
+        about("Termos de uso", "Este texto e um modelo inicial. Edite no painel para refletir as regras comerciais, politica de pagamento, cancelamento, responsabilidades do viajante e condicoes especificas da sua operacao.\n\nAo realizar uma compra ou solicitar atendimento, o cliente declara estar ciente das informacoes apresentadas na pagina do produto, incluindo roteiro, inclusos, nao inclusos, prazos e politicas de cancelamento."),
+        footer(template.description),
+      ],
+    },
+    {
+      slug: "privacidade",
+      title: "Politica de privacidade",
+      show_in_nav: false,
+      nav_order: 91,
+      sections: [
+        hero("Politica de privacidade", "Como os dados dos clientes sao tratados na loja.", "Falar com a equipe", "/contato", image, "classic"),
+        about("Politica de privacidade", "Este texto e um placeholder editavel. Descreva quais dados sao coletados, para quais finalidades sao usados, como o cliente pode solicitar alteracao/exclusao e quais ferramentas de pagamento, atendimento e analytics fazem parte da operacao.\n\nA TuriApp oferece recursos de LGPD, consentimento e exclusao/exportacao de dados, mas cada tenant deve revisar este conteudo conforme sua realidade juridica."),
+        footer(template.description),
+      ],
+    },
+  ];
+}
+
+function defaultFooterLinks() {
+  return [
+    { label: "Produtos", href: "/busca" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Termos", href: "/termos" },
+    { label: "Privacidade", href: "/privacidade" },
+  ];
+}
+
+function heroImageFromTemplate(template: StoreTemplate): string {
+  const heroSection = template.sections.find((section) => section.type === "hero");
+  const image = heroSection?.config?.image_url;
+  return typeof image === "string" && image ? image : "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80";
 }
 
 function hero(
@@ -295,8 +449,8 @@ function banner(title: string, subtitle: string, ctaLabel: string, ctaHref: stri
   };
 }
 
-function about(title: string, text: string): StoreTemplateSection {
-  return { type: "about", visible: true, config: { title, text } };
+function about(title: string, text: string, imageUrl?: string): StoreTemplateSection {
+  return { type: "about", visible: true, config: { title, text, image_url: imageUrl } };
 }
 
 function testimonials(items: { name: string; rating: number; text: string }[]): StoreTemplateSection {
