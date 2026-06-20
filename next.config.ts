@@ -15,15 +15,28 @@ const EXTRA_PREVIEW_FRAME_HOSTS = (
   .split(",")
   .map((host) => host.trim())
   .filter(Boolean);
+const VERCEL_FRAME_HOSTS = [
+  process.env.VERCEL_URL,
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  process.env.NEXT_PUBLIC_VERCEL_URL,
+].filter((host): host is string => Boolean(host));
+const LOCAL_FRAME_SOURCES =
+  process.env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:3000", "http://127.0.0.1:3000"];
 
 const PREVIEW_CHILD_FRAME_SOURCES = Array.from(
   new Set(
     [
       toHttpsSource(PLATFORM_HOST),
       toHttpsSource(`*.${PLATFORM_HOST}`),
+      toHttpsSource(`www.${PLATFORM_HOST}`),
       toHttpsSource(ADMIN_HOST),
       toHttpsSource(APP_HOST),
+      ...VERCEL_FRAME_HOSTS.map(toHttpsSource),
       ...EXTRA_PREVIEW_FRAME_HOSTS.map(toHttpsSource),
+      ...LOCAL_FRAME_SOURCES,
     ].filter((source): source is string => Boolean(source))
   )
 ).join(" ");
@@ -32,9 +45,12 @@ const ALLOWED_FRAME_ANCESTORS = Array.from(
   new Set(
     [
       toHttpsSource(PLATFORM_HOST),
+      toHttpsSource(`www.${PLATFORM_HOST}`),
       toHttpsSource(ADMIN_HOST),
       toHttpsSource(APP_HOST),
+      ...VERCEL_FRAME_HOSTS.map(toHttpsSource),
       ...EXTRA_PREVIEW_FRAME_HOSTS.map(toHttpsSource),
+      ...LOCAL_FRAME_SOURCES,
     ].filter((source): source is string => Boolean(source))
   )
 ).join(" ");
