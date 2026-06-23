@@ -108,6 +108,7 @@ export type SectionType =
   | "product-carousel"
   | "search-bar"
   | "banner"
+  | "promos"
   | "testimonials"
   | "faq"
   | "about"

@@ -188,6 +188,11 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
         { value: "grupo", label: "saidas programadas" },
         { value: "PDF", label: "cotacao pronta" },
       ]),
+      promos("Ofertas em destaque", "Aproveite condicoes especiais para fechar mais rapido.", [
+        { badge: "Ate 30% OFF", title: "Pacotes nacionais", subtitle: "Destinos selecionados com preco promocional." },
+        { badge: "12x sem juros", title: "Parcele sua viagem", subtitle: "Condicoes facilitadas direto no checkout." },
+        { badge: "Saidas em grupo", title: "Viaje acompanhado", subtitle: "Datas programadas com coordenador." },
+      ]),
       productGrid("Pacotes em destaque", "Roteiros com inclusos, nao inclusos, datas e condicoes.", "emissivo", "marketplace"),
       about("Venda pacotes com contexto", "Use este modelo para explicar o destino, mostrar diferenciais, destacar formas de pagamento e transformar cada pacote em uma pagina comercial completa."),
       banner("Cote viagens sob medida", "Capture leads para roteiros personalizados e grupos fechados.", "Solicitar roteiro", "/contato", "#172554"),
@@ -784,6 +789,11 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
         { value: "24h", label: "suporte ao viajante" },
       ]),
       searchBar("Busque por passeio de barco, mergulho ou praia"),
+      promos("Promocoes do litoral", "Ofertas para aproveitar o melhor do mar.", [
+        { badge: "Mais vendido", title: "Passeio de barco", subtitle: "Saidas diarias com paradas para banho." },
+        { badge: "Combo", title: "Mergulho + transfer", subtitle: "Experiencia completa com economia." },
+        { badge: "Por do sol", title: "Navegacao especial", subtitle: "O fim de tarde mais bonito da costa." },
+      ]),
       productGrid("Experiencias no mar", "Cards com duracao, roteiro, inclusos e politica de cancelamento.", "receptivo", "marketplace"),
       banner("Passeios privativos para grupos", "Monte um roteiro nautico exclusivo para sua familia ou empresa.", "Pedir cotacao", "/contato", "#0e7490"),
       testimonials([
@@ -978,6 +988,11 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
         { value: "seguro", label: "pagamento protegido" },
       ]),
       searchBar("Busque por festival, show, data ou local"),
+      promos("Destaques da temporada", "Garanta seu lugar nos eventos mais esperados.", [
+        { badge: "Ultimo lote", title: "Festival de verao", subtitle: "Line-up confirmado, vagas limitadas." },
+        { badge: "Combo VIP", title: "Area premium", subtitle: "Experiencia completa com open bar." },
+        { badge: "Em alta", title: "Shows do mes", subtitle: "Os ingressos mais procurados agora." },
+      ]),
       productGrid("Proximos eventos", "Cards com preco forte, data, local e regras claras.", "receptivo", "marketplace"),
       banner("Combo + lote promocional", "Destaque ultimos lotes, pacotes e experiencias VIP.", "Garantir ingresso", "/busca", "#9f1239"),
       testimonials([
@@ -1265,6 +1280,24 @@ function banner(title: string, subtitle: string, ctaLabel: string, ctaHref: stri
     type: "banner",
     visible: true,
     config: { title, subtitle, cta_label: ctaLabel, cta_href: ctaHref, bg_color: bgColor },
+  };
+}
+
+function promos(
+  title: string,
+  subtitle: string,
+  items: { badge: string; title: string; subtitle: string; cta_label?: string; cta_href?: string }[]
+): StoreTemplateSection {
+  return {
+    type: "promos",
+    visible: true,
+    config: {
+      title,
+      subtitle,
+      // image left empty on purpose — the card falls back to a branded gradient
+      // until the tenant uploads a promo photo in the panel.
+      items: items.map((i) => ({ image: "", cta_label: "Ver oferta", cta_href: "/busca", ...i })),
+    },
   };
 }
 

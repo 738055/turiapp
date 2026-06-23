@@ -164,6 +164,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
     ratingValue: avgRating,
     reviewCount: approvedReviews.length,
   });
+  const breadcrumbJsonLd = seo?.canonicalBaseUrl
+    ? buildBreadcrumbJsonLd({ baseUrl: seo.canonicalBaseUrl, category, product: p })
+    : null;
 
   return (
     <main className="bg-gray-50 text-gray-900">
@@ -171,6 +174,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        />
+      )}
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
       )}
       <div className="border-b border-gray-100 bg-white py-4 text-sm text-gray-500">
@@ -361,6 +370,18 @@ function buildProductJsonLd({
 
 function avgRound(value: number) {
   return value.toFixed(1);
+}
+
+function buildBreadcrumbJsonLd({ baseUrl, category, product }: { baseUrl: string; category: string; product: PublicProduct }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: canonicalUrl(baseUrl, "/") },
+      { "@type": "ListItem", position: 2, name: category, item: canonicalUrl(baseUrl, "/busca") },
+      { "@type": "ListItem", position: 3, name: product.title, item: canonicalUrl(baseUrl, `/produto/${product.slug}`) },
+    ],
+  };
 }
 
 function ProductGallery({ images, title }: { images: string[]; title: string }) {

@@ -25,6 +25,7 @@ import {
   Settings2,
   Sparkles,
   Star,
+  Tag,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +33,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 import type { Page, PageSection, SectionType, Theme } from "@/types";
 
-type FieldType = "text" | "textarea" | "select" | "number" | "list" | "faq-list" | "testimonial-list" | "stat-list";
+type FieldType = "text" | "textarea" | "select" | "number" | "list" | "faq-list" | "testimonial-list" | "stat-list" | "image" | "video" | "promo-list";
+type ImageAspect = "square" | "wide" | "logo" | "portrait" | "ultrawide";
 type FooterLink = { label: string; href: string };
 type SocialLinks = { instagram: string; facebook: string; tiktok: string; youtube: string; linkedin: string };
 type SectionField = {
@@ -43,6 +46,8 @@ type SectionField = {
   type: FieldType | "footer-link-list" | "social-links";
   placeholder?: string;
   options?: { value: string; label: string }[];
+  hint?: string;
+  aspect?: ImageAspect;
 };
 
 const SECTION_CATALOG: { type: SectionType; label: string; icon: typeof LayoutTemplate; desc: string }[] = [
@@ -51,6 +56,7 @@ const SECTION_CATALOG: { type: SectionType; label: string; icon: typeof LayoutTe
   { type: "product-grid", label: "Grade de produtos", icon: Package, desc: "Vitrine com cards de produtos" },
   { type: "product-carousel", label: "Carrossel", icon: LayoutTemplate, desc: "Destaques em linha horizontal" },
   { type: "banner", label: "Banner promocional", icon: Megaphone, desc: "Chamada rapida com CTA" },
+  { type: "promos", label: "Ofertas & promocoes", icon: Tag, desc: "Cards de ofertas estilo Decolar" },
   { type: "testimonials", label: "Depoimentos", icon: Star, desc: "Prova social de clientes" },
   { type: "faq", label: "FAQ", icon: HelpCircle, desc: "Perguntas frequentes" },
   { type: "about", label: "Sobre", icon: Info, desc: "Historia, autoridade e imagem" },
@@ -218,6 +224,7 @@ export function PageBuilder({ page, theme, tenantId, previewUrl }: PageBuilderPr
             {activeSection ? (
               <SectionConfigForm
                 section={activeSection}
+                tenantId={tenantId}
                 onUpdate={(config) => updateSectionConfig(activeSection.id, config)}
               />
             ) : (
@@ -524,9 +531,11 @@ function EmptyEditor({ onAdd }: { onAdd: () => void }) {
 
 function SectionConfigForm({
   section,
+  tenantId,
   onUpdate,
 }: {
   section: PageSection;
+  tenantId: string;
   onUpdate: (config: Record<string, unknown>) => void;
 }) {
   const cfg = section.config ?? {};
@@ -541,9 +550,39 @@ function SectionConfigForm({
       {fields.map((field) => (
         <div
           key={field.key}
-          className={field.type === "textarea" || field.type.includes("list") || field.type === "social-links" ? "space-y-1.5 lg:col-span-2" : "space-y-1.5"}
+          className={field.type === "textarea" || field.type.includes("list") || field.type === "social-links" || field.type === "image" || field.type === "video" ? "space-y-1.5 lg:col-span-2" : "space-y-1.5"}
         >
           <Label className="text-xs">{field.label}</Label>
+          {field.type === "image" && (
+            <ImageUpload
+              tenantId={tenantId}
+              folder="storefront"
+              value={stringFromValue(cfg[field.key]) || null}
+              onChange={(url) => updateField(field.key, url ?? "")}
+              label=""
+              aspectRatio={field.aspect ?? "wide"}
+              hint={field.hint}
+            />
+          )}
+          {field.type === "video" && (
+            <ImageUpload
+              tenantId={tenantId}
+              folder="storefront"
+              value={stringFromValue(cfg[field.key]) || null}
+              onChange={(url) => updateField(field.key, url ?? "")}
+              label=""
+              kind="video"
+              aspectRatio={field.aspect ?? "wide"}
+              hint={field.hint}
+            />
+          )}
+          {field.type === "promo-list" && (
+            <PromosEditor
+              tenantId={tenantId}
+              value={promosFromValue(cfg[field.key])}
+              onChange={(value) => updateField(field.key, value)}
+            />
+          )}
           {field.type === "text" && (
             <Input
               value={stringFromValue(cfg[field.key])}
@@ -760,6 +799,8 @@ function PreviewSection({ section }: { section: PageSection }) {
       return <ProductGridPreview cfg={cfg} carousel={section.type === "product-carousel"} />;
     case "banner":
       return <BannerPreview cfg={cfg} />;
+    case "promos":
+      return <PromosPreview cfg={cfg} />;
     case "testimonials":
       return <TestimonialsPreview cfg={cfg} />;
     case "faq":
@@ -864,6 +905,38 @@ function BannerPreview({ cfg }: { cfg: Record<string, unknown> }) {
         <span className="mt-5 inline-flex rounded-[var(--radius)] bg-[var(--color-accent)] px-5 py-3 text-sm font-bold">
           {stringFromValue(cfg.cta_label) || "Saiba mais"}
         </span>
+      </div>
+    </section>
+  );
+}
+
+function PromosPreview({ cfg }: { cfg: Record<string, unknown> }) {
+  const items = promosFromValue(cfg.items);
+  const list = items.length ? items : [emptyPromo(), emptyPromo(), emptyPromo()];
+  return (
+    <section className="bg-[var(--color-background)] px-6 py-12">
+      <div className="mb-6">
+        <h2 className="text-2xl font-extrabold text-[var(--color-text)]">{stringFromValue(cfg.title) || "Ofertas & promocoes"}</h2>
+        {stringFromValue(cfg.subtitle) && <p className="mt-1 text-sm text-gray-500">{stringFromValue(cfg.subtitle)}</p>}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {list.slice(0, 3).map((promo, i) => (
+          <div key={i} className="relative aspect-[16/10] overflow-hidden rounded-xl bg-[var(--color-secondary)] shadow-sm">
+            {promo.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={promo.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full" style={{ backgroundImage: "linear-gradient(135deg, var(--color-secondary), var(--color-primary))" }} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+            {(promo.badge || true) && (
+              <span className="absolute left-2 top-2 rounded-full bg-[var(--color-accent)] px-2 py-0.5 text-[9px] font-bold uppercase text-white">{promo.badge || "Oferta"}</span>
+            )}
+            <div className="absolute inset-x-0 bottom-0 p-3">
+              <p className="text-sm font-bold leading-tight text-white">{promo.title || "Titulo da oferta"}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -1048,13 +1121,17 @@ function getSectionFields(type: SectionType): SectionField[] {
         { value: "classic", label: "Classico" },
         { value: "marketplace", label: "Agencia / receptivo" },
         { value: "editorial", label: "Editorial / hospedagem" },
+        { value: "split", label: "Dividido (imagem + busca)" },
+        { value: "gradient", label: "Gradiente animado (sem foto)" },
+        { value: "spotlight", label: "Spotlight minimalista" },
       ] },
       { key: "eyebrow", label: "Texto pequeno acima do titulo", type: "text", placeholder: "Loja oficial" },
       { key: "title", label: "Titulo principal", type: "text", placeholder: "Bem-vindo a nossa loja" },
       { key: "subtitle", label: "Subtitulo", type: "textarea", placeholder: "Uma linha sobre o que voce oferece" },
       { key: "cta_label", label: "Texto do botao", type: "text", placeholder: "Ver produtos" },
       { key: "cta_href", label: "Link do botao", type: "text", placeholder: "/busca" },
-      { key: "image_url", label: "URL da imagem de fundo", type: "text", placeholder: "https://..." },
+      { key: "image_url", label: "Imagem de fundo", type: "image", aspect: "wide", hint: "Desktop 1920×1080 (16:9). No celular a imagem recorta para retrato — mantenha o foco no centro." },
+      { key: "video_url", label: "Video de fundo (opcional, substitui a imagem)", type: "video", aspect: "wide", hint: "MP4/WebM ate 8 MB, ~10s em loop e sem audio para nao pesar. A imagem acima vira o poster/fallback." },
       { key: "height", label: "Altura", type: "select", options: [
         { value: "sm", label: "Pequena" },
         { value: "md", label: "Media" },
@@ -1074,11 +1151,17 @@ function getSectionFields(type: SectionType): SectionField[] {
       { key: "placeholder", label: "Texto da busca", type: "text", placeholder: "Buscar produtos..." },
     ],
     banner: [
+      { key: "eyebrow", label: "Selo / etiqueta", type: "text", placeholder: "Oferta limitada" },
       { key: "title", label: "Titulo", type: "text" },
       { key: "subtitle", label: "Subtitulo", type: "text" },
       { key: "cta_label", label: "Texto do botao", type: "text" },
       { key: "cta_href", label: "Link do botao", type: "text" },
-      { key: "image_url", label: "URL da imagem", type: "text" },
+      { key: "image_url", label: "Imagem de fundo", type: "image", aspect: "ultrawide", hint: "Banner largo 1600×600 (8:3). Evite colocar texto dentro da imagem." },
+    ],
+    promos: [
+      { key: "title", label: "Titulo da secao", type: "text", placeholder: "Ofertas e promocoes" },
+      { key: "subtitle", label: "Subtitulo", type: "text", placeholder: "As melhores oportunidades para sua proxima viagem" },
+      { key: "items", label: "Cartoes promocionais", type: "promo-list" },
     ],
     contact: [
       { key: "title", label: "Titulo", type: "text", placeholder: "Fale conosco" },
@@ -1088,9 +1171,10 @@ function getSectionFields(type: SectionType): SectionField[] {
       { key: "address", label: "Endereco", type: "text" },
     ],
     about: [
+      { key: "eyebrow", label: "Texto pequeno acima do titulo", type: "text", placeholder: "Sobre" },
       { key: "title", label: "Titulo", type: "text" },
       { key: "text", label: "Texto", type: "textarea" },
-      { key: "image_url", label: "URL da imagem", type: "text" },
+      { key: "image_url", label: "Imagem", type: "image", aspect: "portrait", hint: "Retrato 1000×1250 (4:5)." },
     ],
     newsletter: [
       { key: "title", label: "Titulo", type: "text" },
@@ -1102,6 +1186,8 @@ function getSectionFields(type: SectionType): SectionField[] {
         { value: "dark", label: "Escuro profissional" },
         { value: "brand", label: "Com cores da marca" },
         { value: "light", label: "Claro editorial" },
+        { value: "glow", label: "Escuro com brilho" },
+        { value: "minimal", label: "Minimalista centrado" },
       ] },
       { key: "company_name", label: "Nome da empresa", type: "text" },
       { key: "description", label: "Descricao curta", type: "textarea" },
@@ -1160,6 +1246,15 @@ function getDefaultConfig(type: SectionType): Record<string, unknown> {
     "product-carousel": { title: "Destaques", limit: 8 },
     "search-bar": { placeholder: "Buscar produtos..." },
     banner: { title: "Promocao especial", subtitle: "Destaque uma oferta ou chamada importante." },
+    promos: {
+      title: "Ofertas & promocoes",
+      subtitle: "As melhores oportunidades para a sua proxima viagem.",
+      items: [
+        { badge: "Ate 30% OFF", title: "Pacotes em destaque", subtitle: "Roteiros selecionados com preco especial.", cta_label: "Ver ofertas", cta_href: "/busca" },
+        { badge: "Novo", title: "Experiencias imperdiveis", subtitle: "Passeios e atrativos para todos os perfis.", cta_label: "Explorar", cta_href: "/busca" },
+        { badge: "12x sem juros", title: "Parcele sua viagem", subtitle: "Condicoes facilitadas no checkout.", cta_label: "Saiba mais", cta_href: "/busca" },
+      ],
+    },
     testimonials: { title: "O que dizem sobre nos", items: [] },
     faq: { title: "Perguntas frequentes", items: [] },
     about: { title: "Sobre nos" },
@@ -1187,6 +1282,9 @@ function cleanSectionConfig(type: string, config: Record<string, unknown>): Reco
   }
   if (type === "testimonials" && Array.isArray(next.items)) {
     next.items = testimonialsFromValue(next.items).filter((item) => item.name.trim() || item.text.trim());
+  }
+  if (type === "promos" && Array.isArray(next.items)) {
+    next.items = promosFromValue(next.items).filter((item) => item.title.trim() || item.image.trim() || item.badge.trim());
   }
   if (type === "footer") {
     next.links = footerLinksFromValue(next.links).filter((item) => item.label.trim() || item.href.trim());
@@ -1452,6 +1550,67 @@ function testimonialsFromValue(value: unknown): { name: string; rating: number; 
       };
     })
     .filter((item): item is { name: string; rating: number; text: string } => !!item);
+}
+
+interface Promo { image: string; badge: string; title: string; subtitle: string; cta_label: string; cta_href: string }
+
+function emptyPromo(): Promo {
+  return { image: "", badge: "", title: "", subtitle: "", cta_label: "", cta_href: "" };
+}
+
+function promosFromValue(value: unknown): Promo[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const p = item as Record<string, unknown>;
+      return {
+        image: stringFromValue(p.image),
+        badge: stringFromValue(p.badge),
+        title: stringFromValue(p.title),
+        subtitle: stringFromValue(p.subtitle),
+        cta_label: stringFromValue(p.cta_label),
+        cta_href: stringFromValue(p.cta_href),
+      };
+    })
+    .filter((item): item is Promo => !!item);
+}
+
+function PromosEditor({ tenantId, value, onChange }: { tenantId: string; value: Promo[]; onChange: (value: Promo[]) => void }) {
+  const items = value.length ? value : [emptyPromo()];
+  return (
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={index} className="rounded-lg border border-gray-200 p-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-gray-400">Card {index + 1}</p>
+            <button type="button" onClick={() => onChange(items.filter((_, i) => i !== index))} className="text-gray-400 hover:text-red-500">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <ImageUpload
+            tenantId={tenantId}
+            folder="storefront"
+            value={item.image || null}
+            onChange={(url) => onChange(updateArrayItem(items, index, { ...item, image: url ?? "" }))}
+            label=""
+            aspectRatio="wide"
+            hint="Card 800×500 (16:10). O selo e o titulo aparecem sobre a foto."
+          />
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <Input value={item.badge} onChange={(e) => onChange(updateArrayItem(items, index, { ...item, badge: e.target.value }))} placeholder="Selo: Ate 30% OFF" className="h-9 text-sm" />
+            <Input value={item.title} onChange={(e) => onChange(updateArrayItem(items, index, { ...item, title: e.target.value }))} placeholder="Titulo da oferta" className="h-9 text-sm" />
+            <Input value={item.subtitle} onChange={(e) => onChange(updateArrayItem(items, index, { ...item, subtitle: e.target.value }))} placeholder="Subtitulo curto" className="h-9 text-sm sm:col-span-2" />
+            <Input value={item.cta_label} onChange={(e) => onChange(updateArrayItem(items, index, { ...item, cta_label: e.target.value }))} placeholder="Texto do botao" className="h-9 text-sm" />
+            <Input value={item.cta_href} onChange={(e) => onChange(updateArrayItem(items, index, { ...item, cta_href: e.target.value }))} placeholder="Link (ex: /busca)" className="h-9 text-sm" />
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...items, emptyPromo()])} className="inline-flex items-center gap-1 rounded-md border border-dashed px-3 py-1.5 text-xs text-gray-600 hover:border-sky-400 hover:bg-sky-50">
+        <Plus className="h-3 w-3" /> Adicionar card
+      </button>
+    </div>
+  );
 }
 
 function footerLinksFromValue(value: unknown): FooterLink[] {

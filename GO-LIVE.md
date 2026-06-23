@@ -31,7 +31,7 @@ Tempo estimado: **2–4 horas** (a maior parte é esperar verificação de DNS/e
    - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` ⚠️ secreta
 3. **SQL Editor** → rode, **em ordem**, todos os arquivos de `db/migrations/`:
-   `001` → `002` → ... → `026`. (Pode colar um de cada vez.)
+   `001` → `002` → ... → `032`. (Pode colar um de cada vez.)
 4. Rode também `db/policies/rls.sql`.
 5. **Storage** → "New bucket" → nome **`media`** → marque **Public**. Ele é usado
    por imagens de produto e anexos do chat WhatsApp. (O bucket `private_docs` já

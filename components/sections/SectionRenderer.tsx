@@ -2,6 +2,7 @@ import type { PageSection, Theme } from "@/types";
 import { HeroSection } from "./HeroSection";
 import { ProductGridSection } from "./ProductGridSection";
 import { BannerSection } from "./BannerSection";
+import { PromosSection } from "./PromosSection";
 import { TestimonialsSection } from "./TestimonialsSection";
 import { FAQSection } from "./FAQSection";
 import { NewsletterSection } from "./NewsletterSection";
@@ -25,6 +26,7 @@ const SECTION_REGISTRY: Record<
   "product-carousel": ProductGridSection,
   "search-bar": SearchBarSection,
   banner: BannerSection,
+  promos: PromosSection,
   testimonials: TestimonialsSection,
   faq: FAQSection,
   about: AboutSection,

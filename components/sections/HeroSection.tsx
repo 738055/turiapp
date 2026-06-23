@@ -11,10 +11,33 @@ interface HeroConfig {
   cta_label?: string;
   cta_href?: string;
   image_url?: string;
+  video_url?: string;
   overlay_opacity?: number;
   height?: "sm" | "md" | "lg" | "full";
   align?: "left" | "center" | "right";
   stats?: { value: string; label: string }[];
+}
+
+/** Full-bleed hero background: an autoplaying muted loop video when set
+ *  (image acts as poster/fallback), otherwise the optimized image. */
+function BgMedia({ image, video, className = "object-cover tf-kenburns" }: { image?: string; video?: string; className?: string }) {
+  if (video) {
+    return (
+      <video
+        className={`absolute inset-0 h-full w-full ${className}`}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster={image || undefined}
+      >
+        <source src={video} />
+      </video>
+    );
+  }
+  if (image) return <Image src={image} alt="" fill priority className={className} />;
+  return null;
 }
 
 const heightMap = {
@@ -57,7 +80,7 @@ function MarketplaceHero({ cfg }: { cfg: HeroConfig }) {
 
   return (
     <section className="relative overflow-hidden bg-[var(--color-secondary)]">
-      <Image src={imageUrl} alt="" fill priority className="object-cover tf-kenburns" />
+      <BgMedia image={imageUrl} video={cfg.video_url} />
       <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-secondary)] via-[var(--color-secondary)]/85 to-[var(--color-secondary)]/25" />
       <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-secondary)] via-transparent to-[var(--color-secondary)]/35" />
 
@@ -134,7 +157,7 @@ function EditorialHero({ cfg }: { cfg: HeroConfig }) {
 
   return (
     <section className="relative flex min-h-[86vh] items-end overflow-hidden bg-[#0f1e16]">
-      <Image src={imageUrl} alt="" fill priority className="object-cover tf-kenburns" />
+      <BgMedia image={imageUrl} video={cfg.video_url} />
       <div className="absolute inset-0 bg-gradient-to-b from-[#0f1e16]/45 via-transparent to-[#0f1e16]/85" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#1c3a2a]/70 via-transparent to-transparent" />
 
@@ -176,10 +199,16 @@ function ClassicHero({ cfg }: { cfg: HeroConfig }) {
 
   return (
     <section className={`relative flex flex-col justify-center overflow-hidden px-6 py-16 ${height}`} style={{ backgroundColor: "var(--color-primary)" }}>
-      {cfg.image_url && (
+      {(cfg.image_url || cfg.video_url) && (
         <>
-          <Image src={cfg.image_url} alt="" fill priority className="object-cover tf-kenburns" />
-          <div className="absolute inset-0 bg-black" style={{ opacity: cfg.overlay_opacity ?? 0.45 }} />
+          <BgMedia image={cfg.image_url} video={cfg.video_url} />
+          {/* Layered overlay: directional gradient for depth + a brand tint, instead
+              of a flat black wash — reads more premium while keeping legibility. */}
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10"
+            style={{ opacity: Math.min(1, (cfg.overlay_opacity ?? 0.45) + 0.15) }}
+          />
+          <div className="absolute inset-0 mix-blend-multiply" style={{ background: "radial-gradient(120% 120% at 50% 120%, var(--color-secondary), transparent 60%)", opacity: 0.5 }} />
         </>
       )}
       <div className={`relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-4 ${alignClass}`}>

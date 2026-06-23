@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { absoluteUrl, canonicalUrl, resolveTenantSeoContextFromHeaders } from "@/lib/seo/tenant";
 import { AnalyticsScripts, GTMNoScript } from "@/components/public/AnalyticsScripts";
 import { CookieConsent } from "@/components/public/CookieConsent";
 import { CartButton } from "@/components/public/CartButton";
@@ -32,6 +33,30 @@ interface TenantPublicData {
     cookie_consent_text?: string | null;
     privacy_policy_url?: string | null;
   } | null;
+}
+
+function buildSiteJsonLd({ name, baseUrl, logo }: { name: string; baseUrl: string; logo: string | null }) {
+  const logoUrl = absoluteUrl(baseUrl, logo);
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name,
+      url: baseUrl,
+      ...(logoUrl ? { logo: logoUrl } : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name,
+      url: baseUrl,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${canonicalUrl(baseUrl, "/busca")}?q={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ];
 }
 
 async function getTenantPublicData(tenantId: string): Promise<TenantPublicData> {
@@ -75,6 +100,13 @@ export default async function PublicLayout({
   // tenants 404 here too — this is the second layer behind the proxy's gate.
   if (!tenant || !STOREFRONT_STATUSES.includes(tenant.status)) notFound();
 
+  // Site-wide structured data (Organization + WebSite with a sitelinks search
+  // box) — helps Google/SGE understand the brand and surface a search action.
+  const seo = await resolveTenantSeoContextFromHeaders(headersList);
+  const siteJsonLd = seo
+    ? buildSiteJsonLd({ name: tenant.name ?? seo.tenant.name, baseUrl: seo.canonicalBaseUrl, logo: theme?.logo_url ?? null })
+    : null;
+
   const cssVars = theme
     ? {
         "--color-primary": theme.primary_color,
@@ -92,6 +124,10 @@ export default async function PublicLayout({
 
   return (
     <div style={cssVars as React.CSSProperties} className="flex min-h-screen flex-col">
+      {siteJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
+      )}
+
       {/* Storefront webfonts. The per-tenant theme sets --font-heading/--font-body
           to one of these families; without this loader they fell back to system
           fonts. Next hoists these <link>s into <head> and dedupes them. */}

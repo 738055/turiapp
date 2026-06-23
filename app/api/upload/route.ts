@@ -1,9 +1,25 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const BUCKET = "media";
+
+// Images (except animated GIF) are normalized to WebP on upload: smaller files,
+// consistent format, and a sane max dimension so a tenant uploading a 6000px
+// phone photo as a hero banner doesn't ship megabytes to every visitor. The
+// original bytes are never stored.
+const WEBP_MAX_DIMENSION = 2400;
+const WEBP_QUALITY = 82;
+
+async function toWebp(input: Buffer): Promise<Buffer> {
+  return sharp(input)
+    .rotate() // honor EXIF orientation before stripping metadata
+    .resize({ width: WEBP_MAX_DIMENSION, height: WEBP_MAX_DIMENSION, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
+}
 
 const DOCUMENT_TYPES = new Set([
   "application/pdf",
@@ -63,14 +79,27 @@ export async function POST(req: NextRequest) {
     .single();
   if (!membership) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
 
-  const ext = extensionFor(file);
+  let ext = extensionFor(file);
+  let contentType = file.type;
+  let bytes: Buffer = Buffer.from(await file.arrayBuffer());
+
+  // Convert raster images to WebP (animated GIFs keep their format).
+  if (IMAGE_TYPES.has(file.type) && file.type !== "image/gif") {
+    try {
+      bytes = await toWebp(bytes);
+      ext = "webp";
+      contentType = "image/webp";
+    } catch {
+      // If conversion fails (corrupt/unsupported), fall back to the original bytes.
+    }
+  }
+
   const filename = `${tenantId}/${folder}/${crypto.randomUUID()}.${ext}`;
-  const bytes = await file.arrayBuffer();
 
   const { error: uploadError } = await service.storage
     .from(BUCKET)
     .upload(filename, bytes, {
-      contentType: file.type,
+      contentType,
       upsert: false,
     });
 

@@ -1,10 +1,10 @@
 # TuriApp — Status de Desenvolvimento
 
-> Última atualização: 2026-06-20
+> Última atualização: 2026-06-23
 > Build: ✅ Passing (`pnpm run build`) · TypeScript ✅ sem erros
 > Rotas de API: 99 · Páginas: 65
 > Testes: ✅ 72/72 passando (`pnpm test`)
-> Migrations: 28 (`db/migrations/001` a `028`) · RLS em 100% das tabelas públicas
+> Migrations: 32 (`db/migrations/001` a `032`) · RLS em 100% das tabelas públicas
 
 ---
 
@@ -15,6 +15,17 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 **Stack:** Next.js 16 App Router · Supabase (Postgres + Auth + Storage + RLS) · Stripe · Mercado Pago · Resend · Vercel
 
 **Estado atual:** núcleo de produto **essencialmente completo e revisado**. Falta apenas o **go-live** (Etapa 15: criar contas, preencher variáveis, rodar migrations, deploy) — não há mais grande funcionalidade codificável pendente. Itens conscientemente fora de escopo (exigem fornecedor pago): Channel Manager via API e Nota Fiscal eletrônica.
+
+### 🗓️ Marcos recentes (2026-06-23) — design system, mídia e SEO/ads
+- **Hardening de segurança (pentest):** strip central de `x-tenant-id`/`x-tenant-slug` no middleware + 2ª camada validando status no layout público (anti-spoofing de tenant); `unsafe-eval` no CSP só em dev; rotação de segredos e Upstash elevados a pré-lançamento no `GO-LIVE.md`
+- **Fix do host super admin:** o ramo `ADMIN_HOST` do `proxy.ts` deixou de reescrever para o route group `(super-admin)` (que dava 404 na raiz e quebrava login/MFA no host admin) — agora passthrough + raiz pelada redireciona para `/admin`
+- **Biblioteca de templates 15 → 21:** novos modelos com identidades distintas (Litoral & Mar, Eco Retreat, Vibe Urbana, Minimal Luxe, Festival & Eventos, Boutique Serra), 3 novas variantes de hero (`split`, `gradient` animado, `spotlight`) e 2 de footer (`minimal`, `glow`)
+- **Refino visual de todas as seções públicas:** tipografia com a fonte do tema, ritmo vertical consistente, micro-interações e animações de entrada (`tf-*` em `globals.css`, CSS puro, zero JS, safe para `prefers-reduced-motion`). **Loader de Google Fonts** no storefront (antes as fontes dos temas não carregavam)
+- **Upload de mídia profissional:** `/api/upload` converte imagens para **WebP** (sharp, máx. 2400px, EXIF corrigido); o PageBuilder troca campos de URL por **upload no bucket** (hero, banner, sobre, cards de promoção) com **dimensões recomendadas mobile/desktop por tipo** para não cortar banners
+- **Hero em vídeo:** fundo de hero aceita **MP4/WebM em loop, mudo, com poster** (variantes classic/marketplace/editorial), com limite de tamanho recomendado para performance
+- **Seção "Ofertas & promoções" (estilo Decolar/Broker):** novo tipo de seção com cards de oferta (upload WebP por card, selo de desconto, CTA), scroll horizontal no mobile e grade no desktop; já incluída em 3 templates
+- **SEO/SGE/ads:** JSON-LD de **Organization + WebSite (SearchAction)** em todo storefront e **BreadcrumbList** no produto (o `Product` com offers/aggregateRating já existia); sitemap com imagens, robots e canonical já cobertos
+- **Pixels no plano Básico (migration 032):** Meta/TikTok/Google Ads/GTM liberados em todos os planos pagos para suportar tráfego pago desde o Básico
 
 ### 🗓️ Marcos recentes (2026-06-17 → 20)
 - **Crescimento/diferenciais:** convite de membros + RBAC (16), avaliações/UGC (23), cupons (24), busca avançada (22), **carrinho multi-produto** (21), programa de afiliados (30)

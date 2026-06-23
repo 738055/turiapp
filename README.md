@@ -94,6 +94,30 @@ idiomas do guia, galeria adicional e dados de hospedagem
 pagina de detalhe do produto. Campos de lista e roteiro sao editados por itens
 guiados no painel, evitando sintaxe manual por linha.
 
+## Banners, Midia E Promocoes
+
+O painel usa upload direto no bucket `media` (sem colar URL). Imagens sao
+convertidas para **WebP** automaticamente (`sharp`, no maximo 2400px, orientacao
+EXIF corrigida) em `app/api/upload/route.ts`. Cada campo de imagem mostra a
+**dimensao recomendada** para nao cortar o banner:
+
+- Hero (fundo): 1920×1080 (16:9) — no celular recorta para retrato, foco no centro;
+- Banner promocional: 1600×600 (8:3);
+- Card de promocao: 800×500 (16:10);
+- Sobre: 1000×1250 (4:5).
+
+O **hero tambem aceita video** de fundo (MP4/WebM em loop, mudo, com a imagem como
+poster) nas variantes classic/marketplace/editorial — recomendado ate ~8 MB para
+manter a performance.
+
+A secao **Ofertas & promocoes** (estilo Decolar/Broker) cria cards promocionais com
+foto, selo de desconto e CTA, com scroll horizontal no mobile e grade no desktop.
+
+SEO pronto para indexacao e trafego pago: `sitemap.xml`/`robots.txt` por tenant,
+canonical/OG, JSON-LD de Organization, WebSite (SearchAction), BreadcrumbList e
+Product (com offers e aggregateRating). Pixels/tags (Meta, TikTok, Google Ads, GTM)
+disponiveis em todos os planos pagos, configurados em `/integracoes`.
+
 ## Deploy
 
 Use `GO-LIVE.md` como runbook de producao. O `STATUS.md` e a fonte rapida do
