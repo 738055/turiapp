@@ -467,11 +467,14 @@ function SectionHeader({
 }) {
   const alignClass = align === "center" ? "mx-auto text-center" : "";
   return (
-    <div className={`mb-12 max-w-2xl ${alignClass}`}>
+    <div className={`tf-reveal mb-12 max-w-2xl ${alignClass}`}>
       <p className={editorial ? "mb-4 text-[11px] uppercase tracking-[0.35em] text-[var(--color-accent)]" : "mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-primary)]"}>
         {eyebrow}
       </p>
-      <h2 className={editorial ? "text-4xl font-light leading-tight text-[#1C3A2A] md:text-5xl" : "text-3xl font-extrabold text-gray-900 md:text-4xl"}>
+      <h2
+        className={editorial ? "text-4xl font-light leading-tight text-[#1C3A2A] md:text-5xl" : "text-3xl font-extrabold text-gray-900 md:text-4xl"}
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
         {title}
       </h2>
       <p className={editorial ? "mt-5 text-base leading-relaxed text-[#1C3A2A]/60" : "mt-3 text-gray-500"}>
