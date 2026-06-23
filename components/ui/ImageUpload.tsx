@@ -50,6 +50,9 @@ export function ImageUpload({
 
   const aspectClass = ASPECT_CLASS[aspectRatio];
   const isVideo = kind === "video";
+  // Logos must never be cropped (and may be transparent); banners use cover so
+  // the tenant previews the real crop.
+  const fitClass = aspectRatio === "logo" ? "object-contain p-2" : "object-cover";
   const defaultHint = isVideo
     ? "MP4 ou WebM · recomendado ate 8 MB, ~10s, 1080p, sem audio"
     : "JPEG, PNG ou WebP · convertido para WebP automaticamente";
@@ -104,7 +107,7 @@ export function ImageUpload({
           {isVideo ? (
             <video src={value} className="h-full w-full object-cover" muted loop playsInline autoPlay />
           ) : (
-            <Image src={value} alt="Upload" fill className="object-cover" />
+            <Image src={value} alt="Upload" fill className={fitClass} />
           )}
           <button
             onClick={handleRemove}

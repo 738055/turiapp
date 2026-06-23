@@ -80,17 +80,31 @@ function Brand({
   compact?: boolean;
   dark?: boolean;
 }) {
+  // With a logo present, show it alone — no card, no background, natural width
+  // (most uploaded logos already include the brand name). The fallback (no logo)
+  // keeps the initials chip + name.
+  if (logoUrl) {
+    return (
+      <Link href="/" className="flex min-w-0 items-center" aria-label={tenantName}>
+        <Image
+          src={logoUrl}
+          alt={tenantName}
+          width={280}
+          height={72}
+          sizes="280px"
+          priority
+          className={`w-auto object-contain ${compact ? "max-h-8" : "max-h-11"}`}
+          style={{ width: "auto", height: "auto" }}
+        />
+      </Link>
+    );
+  }
+
   return (
     <Link href="/" className="flex min-w-0 items-center gap-3">
-      {logoUrl ? (
-        <span className="relative h-10 w-10 overflow-hidden rounded bg-white/90 p-1 shadow-sm">
-          <Image src={logoUrl} alt={tenantName} fill className="object-contain p-1" sizes="40px" />
-        </span>
-      ) : (
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded font-bold ${dark ? "bg-[var(--color-primary)] text-white" : "bg-white/15 text-white"}`}>
-          {tenantName.slice(0, 2).toUpperCase()}
-        </span>
-      )}
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-bold ${dark ? "bg-[var(--color-primary)] text-white" : "bg-white/15 text-white"}`}>
+        {tenantName.slice(0, 2).toUpperCase()}
+      </span>
       <span className={`truncate font-bold ${compact ? "max-w-[220px]" : "max-w-[280px]"} text-base`} style={{ fontFamily: "var(--font-heading)" }}>
         {tenantName}
       </span>

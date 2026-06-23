@@ -211,6 +211,7 @@ export function ThemeEditor({
               }}
               label="Logo da empresa"
               aspectRatio="logo"
+              hint="PNG com fundo transparente · ~400×130 (3:1). Aparece no header sem moldura; a transparencia e mantida na conversao para WebP."
             />
           </CardContent>
         </Card>
