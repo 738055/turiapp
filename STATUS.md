@@ -4,7 +4,7 @@
 > Build: ✅ Passing (`pnpm run build`) · TypeScript ✅ sem erros
 > Rotas de API: 99 · Páginas: 65
 > Testes: ✅ 72/72 passando (`pnpm test`)
-> Migrations: 32 (`db/migrations/001` a `032`) · RLS em 100% das tabelas públicas
+> Migrations: 33 (`db/migrations/001` a `033`) · RLS em 100% das tabelas públicas
 
 ---
 
@@ -26,6 +26,8 @@ TuriApp é uma plataforma SaaS white-label para negócios de turismo. Cada clien
 - **Seção "Ofertas & promoções" (estilo Decolar/Broker):** novo tipo de seção com cards de oferta (upload WebP por card, selo de desconto, CTA), scroll horizontal no mobile e grade no desktop; já incluída em 3 templates
 - **SEO/SGE/ads:** JSON-LD de **Organization + WebSite (SearchAction)** em todo storefront e **BreadcrumbList** no produto (o `Product` com offers/aggregateRating já existia); sitemap com imagens, robots e canonical já cobertos
 - **Pixels no plano Básico (migration 032):** Meta/TikTok/Google Ads/GTM liberados em todos os planos pagos para suportar tráfego pago desde o Básico
+- **Logo profissional sem moldura:** logo do **header** renderiza sem card/fundo, largura natural (sem distorção); logo do **footer** segue o padrão de empresas grandes (monocromático branco em rodapés escuros para contraste). Preview de upload de logo usa `object-contain` e mantém transparência (PNG → WebP com alfa)
+- **Avaliações do Google (migration 033):** nova seção que puxa nota e comentários reais da ficha do Google via Places API (cache de 6h), com selo do Google, fotos dos avaliadores e link "Ver no Google". Tenant cola o **Place ID** em `/integrações`; chave única da plataforma (`GOOGLE_PLACES_API_KEY`)
 
 ### 🗓️ Marcos recentes (2026-06-17 → 20)
 - **Crescimento/diferenciais:** convite de membros + RBAC (16), avaliações/UGC (23), cupons (24), busca avançada (22), **carrinho multi-produto** (21), programa de afiliados (30)

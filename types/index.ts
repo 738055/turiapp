@@ -110,6 +110,7 @@ export type SectionType =
   | "banner"
   | "promos"
   | "testimonials"
+  | "google-reviews"
   | "faq"
   | "about"
   | "contact"

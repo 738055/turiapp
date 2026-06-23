@@ -118,6 +118,14 @@ canonical/OG, JSON-LD de Organization, WebSite (SearchAction), BreadcrumbList e
 Product (com offers e aggregateRating). Pixels/tags (Meta, TikTok, Google Ads, GTM)
 disponiveis em todos os planos pagos, configurados em `/integracoes`.
 
+A logo aparece **sem moldura** no header (largura natural) e no rodape no padrao de
+empresas grandes (monocromatica em rodapes escuros). Use PNG transparente — a
+conversao para WebP mantem o canal alfa.
+
+A secao **Avaliacoes do Google** puxa nota e comentarios reais da ficha do Google
+(Places API, cache de 6h). O tenant cola o **Place ID** em `/integracoes` e a
+plataforma usa uma unica chave `GOOGLE_PLACES_API_KEY`.
+
 ## Deploy
 
 Use `GO-LIVE.md` como runbook de producao. O `STATUS.md` e a fonte rapida do

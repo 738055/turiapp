@@ -36,6 +36,7 @@ export function IntegrationForm({ tenantId, initialValues: iv, pixelsAllowed = t
     cookie_consent_text: String(iv.cookie_consent_text ?? ""),
     privacy_policy_url: String(iv.privacy_policy_url ?? ""),
     head_scripts: String(iv.head_scripts ?? ""),
+    google_place_id: String(iv.google_place_id ?? ""),
   });
 
   function update(key: keyof typeof form, value: string | boolean) {
@@ -209,6 +210,19 @@ export function IntegrationForm({ tenantId, initialValues: iv, pixelsAllowed = t
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Google reviews — available on every plan (public display, not a pixel) */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Avaliacoes do Google</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          {field(
+            "Google Place ID",
+            "google_place_id",
+            "ChIJ...",
+            "Cole o Place ID da sua ficha no Google. Adicione a secao \"Avaliacoes do Google\" em uma pagina para exibir nota e comentarios reais. Encontre o ID em developers.google.com/maps/documentation/places/web-service/place-id."
+          )}
         </CardContent>
       </Card>
 

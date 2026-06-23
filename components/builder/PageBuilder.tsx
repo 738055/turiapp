@@ -58,6 +58,7 @@ const SECTION_CATALOG: { type: SectionType; label: string; icon: typeof LayoutTe
   { type: "banner", label: "Banner promocional", icon: Megaphone, desc: "Chamada rapida com CTA" },
   { type: "promos", label: "Ofertas & promocoes", icon: Tag, desc: "Cards de ofertas estilo Decolar" },
   { type: "testimonials", label: "Depoimentos", icon: Star, desc: "Prova social de clientes" },
+  { type: "google-reviews", label: "Avaliacoes do Google", icon: Star, desc: "Puxa avaliacoes reais do Google" },
   { type: "faq", label: "FAQ", icon: HelpCircle, desc: "Perguntas frequentes" },
   { type: "about", label: "Sobre", icon: Info, desc: "Historia, autoridade e imagem" },
   { type: "contact", label: "Contato", icon: Phone, desc: "Telefone, email e WhatsApp" },
@@ -801,6 +802,8 @@ function PreviewSection({ section }: { section: PageSection }) {
       return <BannerPreview cfg={cfg} />;
     case "promos":
       return <PromosPreview cfg={cfg} />;
+    case "google-reviews":
+      return <GoogleReviewsPreview cfg={cfg} />;
     case "testimonials":
       return <TestimonialsPreview cfg={cfg} />;
     case "faq":
@@ -938,6 +941,40 @@ function PromosPreview({ cfg }: { cfg: Record<string, unknown> }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function GoogleReviewsPreview({ cfg }: { cfg: Record<string, unknown> }) {
+  return (
+    <section className="bg-[var(--color-background)] px-6 py-12">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <h2 className="text-2xl font-extrabold text-[var(--color-text)]">{stringFromValue(cfg.title) || "O que dizem no Google"}</h2>
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+          <span className="text-2xl font-extrabold text-[var(--color-text)]">4.8</span>
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((i) => <Star key={i} className="h-3.5 w-3.5 fill-[#fbbc05] text-[#fbbc05]" />)}
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-7 w-7 rounded-full bg-gray-100" />
+              <span className="text-xs font-bold text-gray-700">Cliente Google</span>
+            </div>
+            <div className="flex gap-0.5">{[1, 2, 3, 4, 5].map((s) => <Star key={s} className="h-3 w-3 fill-[#fbbc05] text-[#fbbc05]" />)}</div>
+            <div className="mt-2 space-y-1">
+              <div className="h-2 w-full rounded bg-gray-100" />
+              <div className="h-2 w-4/5 rounded bg-gray-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-center text-xs text-gray-400">
+        As avaliacoes reais sao puxadas do Google ao vivo. Cole o <strong>Place ID</strong> em Integracoes para ativar.
+      </p>
     </section>
   );
 }
@@ -1207,6 +1244,10 @@ function getSectionFields(type: SectionType): SectionField[] {
       { key: "title", label: "Titulo", type: "text" },
       { key: "items", label: "Depoimentos", type: "testimonial-list" },
     ],
+    "google-reviews": [
+      { key: "title", label: "Titulo da secao", type: "text", placeholder: "O que dizem no Google" },
+      { key: "subtitle", label: "Subtitulo", type: "text" },
+    ],
     faq: [
       { key: "title", label: "Titulo", type: "text" },
       { key: "items", label: "Perguntas", type: "faq-list" },
@@ -1256,6 +1297,7 @@ function getDefaultConfig(type: SectionType): Record<string, unknown> {
       ],
     },
     testimonials: { title: "O que dizem sobre nos", items: [] },
+    "google-reviews": { title: "O que dizem sobre nos no Google" },
     faq: { title: "Perguntas frequentes", items: [] },
     about: { title: "Sobre nos" },
     contact: { title: "Fale conosco" },

@@ -3,6 +3,7 @@ import { HeroSection } from "./HeroSection";
 import { ProductGridSection } from "./ProductGridSection";
 import { BannerSection } from "./BannerSection";
 import { PromosSection } from "./PromosSection";
+import { GoogleReviewsSection } from "./GoogleReviewsSection";
 import { TestimonialsSection } from "./TestimonialsSection";
 import { FAQSection } from "./FAQSection";
 import { NewsletterSection } from "./NewsletterSection";
@@ -27,6 +28,7 @@ const SECTION_REGISTRY: Record<
   "search-bar": SearchBarSection,
   banner: BannerSection,
   promos: PromosSection,
+  "google-reviews": GoogleReviewsSection,
   testimonials: TestimonialsSection,
   faq: FAQSection,
   about: AboutSection,

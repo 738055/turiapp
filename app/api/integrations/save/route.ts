@@ -34,6 +34,8 @@ const schema = z.object({
   cookie_consent_text: z.string().max(500).optional(),
   privacy_policy_url: z.string().url().optional().or(z.literal("")),
   head_scripts: z.string().max(10000).optional(),
+  // Not a pixel — public review display, available on every plan.
+  google_place_id: z.string().max(160).optional(),
 });
 
 export async function POST(req: NextRequest) {
