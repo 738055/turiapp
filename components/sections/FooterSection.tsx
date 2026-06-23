@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Briefcase, Camera, Clock, Mail, MapPin, MessageCircle, Music2, Phone, Play, Share2 } from "lucide-react";
 import type { PageSection, Theme } from "@/types";
 
@@ -19,12 +20,16 @@ interface FooterConfig {
   social?: { instagram?: string; facebook?: string; tiktok?: string; youtube?: string; linkedin?: string };
 }
 
-export function FooterSection({ section }: { section: PageSection; theme: Theme | null; tenantId: string }) {
+export function FooterSection({ section, theme }: { section: PageSection; theme: Theme | null; tenantId: string }) {
   const cfg = (section.config ?? {}) as FooterConfig;
   const year = new Date().getFullYear();
   const variant = cfg.variant ?? "dark";
   const isLight = variant === "light";
   const isGlow = variant === "glow";
+  const logoUrl = theme?.logo_url;
+  // On dark footers the brand logo is forced to monochrome white so it stays
+  // legible regardless of its own colors — the standard big-brand footer pattern.
+  const darkBackground = !isLight && variant !== "minimal";
   const whatsapp = cfg.whatsapp ?? cfg.whatsapp_number;
   const links = cfg.links?.length
     ? cfg.links
@@ -66,11 +71,20 @@ export function FooterSection({ section }: { section: PageSection; theme: Theme 
     return (
       <footer className="mt-auto border-t border-gray-200 bg-[var(--color-background)] px-4 py-12 text-center sm:px-6">
         <div className="mx-auto max-w-5xl">
-          {cfg.company_name && (
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt={cfg.company_name ?? "Logo"}
+              width={200}
+              height={56}
+              className="mx-auto mb-1 max-h-11 w-auto object-contain"
+              style={{ width: "auto", height: "auto" }}
+            />
+          ) : cfg.company_name ? (
             <p className="text-xl font-extrabold text-[var(--color-text)]" style={{ fontFamily: "var(--font-heading)" }}>
               {cfg.company_name}
             </p>
-          )}
+          ) : null}
           {cfg.description && <p className="mx-auto mt-3 max-w-md text-sm text-[var(--color-text)]/60">{cfg.description}</p>}
           <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {links.map((link) => (
@@ -102,11 +116,20 @@ export function FooterSection({ section }: { section: PageSection; theme: Theme 
       )}
       <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr_1fr_0.8fr]">
         <div className="max-w-md">
-          {cfg.company_name && (
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt={cfg.company_name ?? "Logo"}
+              width={220}
+              height={64}
+              className={`mb-4 max-h-12 w-auto object-contain ${darkBackground ? "brightness-0 invert" : ""}`}
+              style={{ width: "auto", height: "auto" }}
+            />
+          ) : cfg.company_name ? (
             <p className="mb-3 text-2xl font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>
               {cfg.company_name}
             </p>
-          )}
+          ) : null}
           {cfg.description && <p className={`text-sm leading-relaxed ${textMuted}`}>{cfg.description}</p>}
           {cfg.legal_text && <p className={`mt-5 text-xs leading-relaxed ${textMuted}`}>{cfg.legal_text}</p>}
         </div>
