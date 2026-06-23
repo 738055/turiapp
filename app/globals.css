@@ -58,6 +58,57 @@ h1, h2, h3, h4, h5, h6 {
   --color-sidebar-hover: #334155;
 }
 
+/* ── Storefront animations (CSS-only, zero client JS) ─────────────────────────
+   Entrance animations play once on load (no scroll observer needed). All motion
+   is gated behind prefers-reduced-motion so it degrades to a static layout for
+   users who opt out — accessibility first. Used by HeroSection / FooterSection
+   and the public sections via the `tf-*` utility classes. */
+@keyframes tf-fade-up {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tf-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tf-zoom-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes tf-ken-burns {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.14) translate(-1.5%, -1.5%); }
+}
+@keyframes tf-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes tf-gradient-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes tf-glow-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tf-reveal { opacity: 0; animation: tf-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .tf-reveal-fade { opacity: 0; animation: tf-fade-in 0.9s ease both; }
+  .tf-reveal-zoom { opacity: 0; animation: tf-zoom-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .tf-delay-1 { animation-delay: 0.08s; }
+  .tf-delay-2 { animation-delay: 0.18s; }
+  .tf-delay-3 { animation-delay: 0.3s; }
+  .tf-delay-4 { animation-delay: 0.44s; }
+  .tf-delay-5 { animation-delay: 0.6s; }
+  .tf-kenburns { animation: tf-ken-burns 20s ease-out both; }
+  .tf-float { animation: tf-float 6s ease-in-out infinite; }
+  .tf-float-slow { animation: tf-float 9s ease-in-out infinite; }
+  .tf-gradient-anim { background-size: 220% 220%; animation: tf-gradient-pan 16s ease infinite; }
+  .tf-glow { animation: tf-glow-pulse 5s ease-in-out infinite; }
+}
+
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;

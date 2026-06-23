@@ -56,7 +56,10 @@ const FONT_OPTIONS = [
   { value: '"Inter", system-ui, sans-serif', label: "Inter" },
   { value: '"DM Sans", system-ui, sans-serif', label: "DM Sans" },
   { value: '"Poppins", system-ui, sans-serif', label: "Poppins" },
+  { value: '"Space Grotesk", system-ui, sans-serif', label: "Space Grotesk" },
+  { value: '"Sora", system-ui, sans-serif', label: "Sora" },
   { value: '"Playfair Display", Georgia, serif', label: "Playfair Display" },
+  { value: '"Fraunces", Georgia, serif', label: "Fraunces" },
   { value: '"Merriweather", Georgia, serif', label: "Merriweather" },
 ];
 

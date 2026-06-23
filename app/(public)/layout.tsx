@@ -92,6 +92,19 @@ export default async function PublicLayout({
 
   return (
     <div style={cssVars as React.CSSProperties} className="flex min-h-screen flex-col">
+      {/* Storefront webfonts. The per-tenant theme sets --font-heading/--font-body
+          to one of these families; without this loader they fell back to system
+          fonts. Next hoists these <link>s into <head> and dedupes them. */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      {/* App Router hoists this into <head> for the whole storefront — the
+          pages/_document warning does not apply here. */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      />
+
       {/* GTM noscript (must be as early as possible in body) */}
       {integrations?.google_tag_manager_id && (
         <GTMNoScript gtmId={integrations.google_tag_manager_id} />

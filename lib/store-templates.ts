@@ -78,6 +78,22 @@ const fonts = {
   modern: '"DM Sans", system-ui, sans-serif',
   friendly: '"Poppins", system-ui, sans-serif',
   serif: '"Playfair Display", Georgia, serif',
+  display: '"Space Grotesk", system-ui, sans-serif',
+  geometric: '"Sora", system-ui, sans-serif',
+  editorial: '"Fraunces", Georgia, serif',
+};
+
+type HeroVariant = "classic" | "marketplace" | "editorial" | "split" | "gradient" | "spotlight";
+
+// Declared before STORE_TEMPLATES: hero() reads it while the array is being
+// built at module load, so it must be initialized first (no TDZ).
+const HERO_EYEBROWS: Record<HeroVariant, string> = {
+  classic: "Loja oficial",
+  marketplace: "Loja oficial",
+  editorial: "Experiencia selecionada",
+  split: "Reserva online",
+  gradient: "Novidades & destaques",
+  spotlight: "Curadoria exclusiva",
 };
 
 export const STORE_TEMPLATES: StoreTemplate[] = [
@@ -743,6 +759,299 @@ export const STORE_TEMPLATES: StoreTemplate[] = [
       },
     }),
   },
+  {
+    id: "receptivo-litoral",
+    name: "Litoral & Mar",
+    category: "receptivo",
+    description: "Vitrine clara e arejada para passeios nauticos, praias, mergulho e experiencias de litoral.",
+    source: "TuriApp design system - hero split",
+    bestFor: ["passeios de barco", "praias", "mergulho", "litoral"],
+    theme: {
+      primary_color: "#0891b2",
+      secondary_color: "#0e7490",
+      accent_color: "#f97316",
+      background_color: "#f0fdff",
+      text_color: "#0c2a33",
+      font_heading: fonts.geometric,
+      font_body: fonts.modern,
+      border_radius: "1.25rem",
+      menu_type: "top-transparent",
+      card_type: "card-image-large",
+    },
+    sections: [
+      hero("Mar, sol e experiencias inesqueciveis", "Reserve passeios nauticos, mergulhos e dias de praia com confirmacao rapida e atendimento de quem conhece o litoral.", "Explorar passeios", "/busca?modulo=receptivo", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80", "split", [
+        { value: "4.9", label: "avaliacao media" },
+        { value: "24h", label: "suporte ao viajante" },
+      ]),
+      searchBar("Busque por passeio de barco, mergulho ou praia"),
+      productGrid("Experiencias no mar", "Cards com duracao, roteiro, inclusos e politica de cancelamento.", "receptivo", "marketplace"),
+      banner("Passeios privativos para grupos", "Monte um roteiro nautico exclusivo para sua familia ou empresa.", "Pedir cotacao", "/contato", "#0e7490"),
+      testimonials([
+        { name: "Marcela Dias", rating: 5, text: "Passeio de barco impecavel, com tudo explicado antes da reserva." },
+        { name: "Thiago Rocha", rating: 5, text: "Atendimento rapido e equipe muito atenciosa no mergulho." },
+        { name: "Familia Couto", rating: 5, text: "Conseguimos comparar os passeios e reservar em minutos." },
+      ]),
+      faq(),
+      contact(),
+      footer("Passeios de litoral, experiencias nauticas e suporte local para sua viagem.", "glow"),
+    ],
+    productDefaults: productDefaults("receptivo", "experiencia", {
+      title: "Passeio de barco ao por do sol",
+      description: "Navegacao guiada pela costa com paradas para banho, vista do por do sol e suporte da tripulacao.",
+      extra_data: {
+        duration: "3 horas",
+        location: "Orla / litoral",
+        highlights: ["Paradas para banho", "Vista do por do sol", "Tripulacao local"],
+        included: ["Embarcacao", "Coletes salva-vidas", "Agua a bordo"],
+        not_included: ["Alimentacao", "Bebidas alcoolicas", "Transfer ate o pier"],
+      },
+    }),
+  },
+  {
+    id: "hospedagem-eco",
+    name: "Eco Retreat",
+    category: "hospedagem",
+    description: "Modelo sereno para glamping, ecopousadas, wellness e refugios de natureza com sensacao premium.",
+    source: "TuriApp design system - hero split editorial",
+    bestFor: ["glamping", "ecopousada", "wellness", "refugio"],
+    theme: {
+      primary_color: "#3f6212",
+      secondary_color: "#1a2e05",
+      accent_color: "#ca8a04",
+      background_color: "#fcfdf7",
+      text_color: "#1f2913",
+      font_heading: fonts.editorial,
+      font_body: fonts.modern,
+      border_radius: "1.5rem",
+      menu_type: "top-transparent",
+      card_type: "card-image-large",
+    },
+    sections: [
+      hero("Desacelere em meio a natureza", "Refugios de bem-estar, glamping e ecopousadas com conforto, silencio e reserva simples.", "Ver refugios", "/busca?modulo=hospedagem", "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1400&q=80", "split", [
+        { value: "natureza", label: "imersao total" },
+        { value: "wellness", label: "experiencia premium" },
+      ]),
+      productGrid("Refugios e experiencias", "Mostre capacidade, comodidades, atmosfera e politicas para facilitar a decisao.", "hospedagem", "editorial"),
+      about("Bem-estar comeca na escolha", "Este modelo valoriza atmosfera, sustentabilidade e detalhes de conforto, ajudando o hospede a sentir o lugar antes mesmo de reservar."),
+      banner("Pacotes de bem-estar e datas especiais", "Crie experiencias com spa, gastronomia e atividades guiadas.", "Consultar disponibilidade", "/contato", "#1a2e05"),
+      testimonials([
+        { name: "Helena Vasquez", rating: 5, text: "O lugar e exatamente o que as fotos e descricoes mostraram. Paz total." },
+        { name: "Rodrigo Sa", rating: 5, text: "Reserva facil e atendimento que transmite cuidado." },
+        { name: "Casal Lopes", rating: 5, text: "Perfeito para desligar. Entendemos tudo que estava incluso." },
+      ]),
+      faq(),
+      contact(),
+      footer("Refugios de natureza, bem-estar e hospitalidade com proposito.", "minimal"),
+    ],
+    productDefaults: productDefaults("hospedagem", "chalé", {
+      title: "Domo geodesico na mata",
+      description: "Hospedagem de glamping com vista para a natureza, conforto e experiencia imersiva para casais.",
+      extra_data: {
+        duration: "Diarias flexiveis",
+        location: "Reserva natural",
+        highlights: ["Imersao na natureza", "Ideal para casais", "Cafe da manha artesanal"],
+        included: ["Roupa de cama e banho", "Cafe da manha", "Trilha guiada"],
+        not_included: ["Refeicoes adicionais", "Experiencias opcionais"],
+        capacity: "2 pessoas",
+        bedrooms: "1 suite",
+        bathrooms: "1 banheiro",
+      },
+    }),
+  },
+  {
+    id: "receptivo-urbano",
+    name: "Vibe Urbana",
+    category: "receptivo",
+    description: "Tema vibrante e jovem para experiencias urbanas, vida noturna, gastronomia, tours culturais e eventos.",
+    source: "TuriApp design system - hero gradient",
+    bestFor: ["city tours", "vida noturna", "gastronomia", "cultura"],
+    theme: {
+      primary_color: "#7c3aed",
+      secondary_color: "#4c1d95",
+      accent_color: "#ec4899",
+      background_color: "#faf5ff",
+      text_color: "#1e1b2e",
+      font_heading: fonts.display,
+      font_body: fonts.sans,
+      border_radius: "1rem",
+      menu_type: "top-centered",
+      card_type: "card-price-highlight",
+    },
+    sections: [
+      hero("Viva a cidade como um local", "Tours culturais, gastronomia, vida noturna e experiencias urbanas com reserva instantanea.", "Descobrir experiencias", "/busca?modulo=receptivo", "", "gradient", [
+        { value: "+200", label: "experiencias" },
+        { value: "4.8", label: "avaliacao media" },
+        { value: "instant", label: "reserva imediata" },
+      ]),
+      searchBar("Busque por tour, bar, restaurante ou evento"),
+      productGrid("Bombando agora", "Cards com preco em destaque, duracao e o que esta incluso.", "receptivo", "marketplace"),
+      banner("Role em grupo com desconto", "Monte experiencias para amigos, despedidas e equipes.", "Falar no WhatsApp", "/contato", "#4c1d95"),
+      testimonials([
+        { name: "Bianca Reis", rating: 5, text: "Roteiro noturno sensacional, tudo organizado e seguro." },
+        { name: "Gustavo Lima", rating: 5, text: "Reservei em segundos e a experiencia superou as expectativas." },
+        { name: "Crew Nightlife", rating: 5, text: "Ideal para grupos. Facil escolher e fechar." },
+      ]),
+      faq(),
+      contact(),
+      footer("Experiencias urbanas, cultura e vida noturna com reserva instantanea.", "glow"),
+    ],
+    productDefaults: productDefaults("receptivo", "experiencia", {
+      title: "Tour gastronomico noturno",
+      description: "Roteiro a pe por bares e restaurantes selecionados, com guia local e degustacoes inclusas.",
+      extra_data: {
+        duration: "4 horas",
+        location: "Centro historico",
+        highlights: ["Guia local", "Degustacoes inclusas", "Grupo pequeno"],
+        included: ["Guia", "3 degustacoes", "1 bebida"],
+        not_included: ["Transporte", "Consumo extra", "Gorjetas"],
+      },
+    }),
+  },
+  {
+    id: "emissivo-luxe",
+    name: "Minimal Luxe",
+    category: "emissivo",
+    description: "Estetica minimalista e sofisticada para viagens de luxo, lua de mel e roteiros sob medida de alto ticket.",
+    source: "TuriApp design system - hero spotlight",
+    bestFor: ["viagens de luxo", "lua de mel", "alto ticket", "consultoria premium"],
+    theme: {
+      primary_color: "#1c1917",
+      secondary_color: "#0c0a09",
+      accent_color: "#b08d57",
+      background_color: "#faf8f5",
+      text_color: "#1c1917",
+      font_heading: fonts.editorial,
+      font_body: fonts.modern,
+      border_radius: "0.25rem",
+      menu_type: "top-centered",
+      card_type: "card-horizontal",
+    },
+    sections: [
+      hero("Viagens desenhadas nos minimos detalhes", "Curadoria sob medida, hoteis excepcionais e experiencias raras com acompanhamento consultivo do inicio ao fim.", "Solicitar consultoria", "/contato", "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80", "spotlight"),
+      productGrid("Roteiros selecionados", "Cada produto pode virar uma proposta completa com inclusos, datas e politica comercial.", "emissivo", "editorial"),
+      about("Luxo e cuidado, nao apenas preco", "Use este modelo para vender curadoria, exclusividade e atendimento consultivo. Edite destinos, argumentos e provas sociais com elegancia."),
+      testimonials([
+        { name: "Isabela Monteiro", rating: 5, text: "Sentimos exclusividade em cada etapa. Uma proposta impecavel." },
+        { name: "Casal Werneck", rating: 5, text: "A lua de mel foi perfeita, com tudo pensado nos detalhes." },
+        { name: "Eduardo Past", rating: 5, text: "Atendimento de altissimo nivel, do contato a viagem." },
+      ]),
+      banner("Comece pela conversa", "Roteiros sob medida pedem um atendimento a altura.", "Falar com consultor", "/contato", "#0c0a09"),
+      faq(),
+      contact(),
+      footer("Viagens de luxo, curadoria e atendimento consultivo sob medida.", "minimal"),
+    ],
+    productDefaults: productDefaults("emissivo", "viagem", {
+      title: "Roteiro privativo pela Toscana",
+      description: "Viagem sob medida com hoteis selecionados, experiencias exclusivas e consultor dedicado.",
+      extra_data: {
+        duration: "8 dias / 7 noites",
+        location: "Toscana, Italia",
+        highlights: ["Hoteis excepcionais", "Experiencias privativas", "Consultor dedicado"],
+        included: ["Consultoria completa", "Hospedagem selecionada", "Roteiro detalhado"],
+        not_included: ["Passagens aereas", "Despesas pessoais", "Refeicoes nao descritas"],
+      },
+    }),
+  },
+  {
+    id: "receptivo-eventos",
+    name: "Festival & Eventos",
+    category: "receptivo",
+    description: "Modelo energetico para ingressos de eventos, festivais, shows, experiencias com data marcada e combos.",
+    source: "TuriApp design system - hero gradient",
+    bestFor: ["festivais", "shows", "eventos", "ingressos com data"],
+    theme: {
+      primary_color: "#e11d48",
+      secondary_color: "#9f1239",
+      accent_color: "#f59e0b",
+      background_color: "#fff1f2",
+      text_color: "#27121a",
+      font_heading: fonts.friendly,
+      font_body: fonts.sans,
+      border_radius: "1rem",
+      menu_type: "top-centered",
+      card_type: "card-price-highlight",
+    },
+    sections: [
+      hero("O ingresso para o que vem por ai", "Festivais, shows e eventos com compra rapida, voucher digital e tudo o que voce precisa saber antes de ir.", "Ver eventos", "/busca?modulo=receptivo", "", "gradient", [
+        { value: "QR", label: "voucher digital" },
+        { value: "lotes", label: "precos por fase" },
+        { value: "seguro", label: "pagamento protegido" },
+      ]),
+      searchBar("Busque por festival, show, data ou local"),
+      productGrid("Proximos eventos", "Cards com preco forte, data, local e regras claras.", "receptivo", "marketplace"),
+      banner("Combo + lote promocional", "Destaque ultimos lotes, pacotes e experiencias VIP.", "Garantir ingresso", "/busca", "#9f1239"),
+      testimonials([
+        { name: "Larissa Pinto", rating: 5, text: "Comprei o ingresso em segundos e recebi o voucher na hora." },
+        { name: "Felipe Andrade", rating: 5, text: "Tudo muito claro: data, local e regras. Sem surpresa." },
+        { name: "Galera do Rolê", rating: 5, text: "Compramos em grupo, super pratico e seguro." },
+      ]),
+      faq([
+        { question: "Como recebo meu ingresso?", answer: "Apos a compra, o voucher digital fica disponivel com QR Code. Edite esta resposta conforme sua operacao." },
+        { question: "Posso comprar para um grupo?", answer: "Sim. Ajuste a quantidade no checkout ou fale com a equipe para lotes maiores." },
+      ]),
+      contact(),
+      footer("Ingressos de eventos e festivais com compra rapida e voucher digital.", "glow"),
+    ],
+    productDefaults: productDefaults("receptivo", "ingresso", {
+      title: "Ingresso festival de verao",
+      description: "Entrada para o festival com line-up confirmado, regras de acesso e voucher digital.",
+      extra_data: {
+        duration: "1 dia",
+        location: "Arena de eventos",
+        highlights: ["Voucher digital com QR", "Line-up confirmado", "Compra protegida"],
+        included: ["Acesso ao evento", "Voucher digital", "Suporte de atendimento"],
+        not_included: ["Transporte", "Alimentacao", "Area VIP (opcional)"],
+      },
+    }),
+  },
+  {
+    id: "hospedagem-serra",
+    name: "Boutique Serra",
+    category: "hospedagem",
+    description: "Tema aconchegante e sofisticado para pousadas de serra, lareiras, gastronomia e estadias romanticas.",
+    source: "TuriApp design system - hero spotlight",
+    bestFor: ["pousada de serra", "lareira", "romantico", "gastronomia"],
+    theme: {
+      primary_color: "#7c2d12",
+      secondary_color: "#431407",
+      accent_color: "#b45309",
+      background_color: "#fdf8f3",
+      text_color: "#3b2415",
+      font_heading: fonts.serif,
+      font_body: fonts.modern,
+      border_radius: "0.5rem",
+      menu_type: "top-centered",
+      card_type: "card-image-large",
+    },
+    sections: [
+      hero("O charme da serra com requinte", "Pousadas com lareira, gastronomia e vistas que pedem demora, apresentadas com elegancia e reserva simples.", "Ver acomodacoes", "/busca?modulo=hospedagem", "https://images.unsplash.com/photo-1455587734955-081b22074882?auto=format&fit=crop&w=1200&q=80", "spotlight"),
+      productGrid("Acomodacoes da casa", "Quartos e chales com detalhes de conforto, gastronomia e experiencias inclusas.", "hospedagem", "editorial"),
+      about("Hospitalidade que vira lembranca", "Este modelo valoriza atmosfera, gastronomia e detalhes que transformam uma estadia em experiencia memoravel."),
+      banner("Pacotes romanticos e gastronomicos", "Crie experiencias com jantar harmonizado, spa e check-out estendido.", "Consultar datas", "/contato", "#431407"),
+      testimonials([
+        { name: "Aline e Marcos", rating: 5, text: "Lugar lindo, atendimento caloroso e tudo como descrito." },
+        { name: "Patricia Goncalves", rating: 5, text: "A pagina ja transmitia o aconchego da pousada. Apaixonante." },
+        { name: "Casal Ferraz", rating: 5, text: "Reserva facil e experiencia gastronomica impecavel." },
+      ]),
+      faq(),
+      contact(),
+      footer("Pousadas de serra, gastronomia e experiencias romanticas com hospitalidade.", "brand"),
+    ],
+    productDefaults: productDefaults("hospedagem", "pousada", {
+      title: "Suite com lareira e vista",
+      description: "Acomodacao romantica com lareira, vista para a serra e cafe da manha colonial.",
+      extra_data: {
+        duration: "Diarias flexiveis",
+        location: "Regiao serrana",
+        highlights: ["Lareira na suite", "Vista para a serra", "Cafe colonial"],
+        included: ["Cafe da manha", "Wi-Fi", "Estacionamento"],
+        not_included: ["Jantar harmonizado", "Experiencias de spa"],
+        capacity: "2 pessoas",
+        bedrooms: "1 suite",
+        bathrooms: "1 banheiro",
+      },
+    }),
+  },
 ];
 
 export function getStoreTemplate(id: string | null | undefined): StoreTemplate {
@@ -917,7 +1226,7 @@ function hero(
   ctaLabel: string,
   ctaHref: string,
   imageUrl: string,
-  variant: "classic" | "marketplace" | "editorial",
+  variant: HeroVariant,
   stats: { value: string; label: string }[] = []
 ): StoreTemplateSection {
   return {
@@ -925,7 +1234,7 @@ function hero(
     visible: true,
     config: {
       variant,
-      eyebrow: variant === "editorial" ? "Experiencia selecionada" : "Loja oficial",
+      eyebrow: HERO_EYEBROWS[variant],
       title,
       subtitle,
       cta_label: ctaLabel,
@@ -978,12 +1287,15 @@ function contact(): StoreTemplateSection {
   return { type: "contact", visible: true, config: { title: "Fale com a equipe", whatsapp: "", phone: "", email: "" } };
 }
 
-function footer(description = "Turismo com qualidade, tecnologia e atendimento humano."): StoreTemplateSection {
+function footer(
+  description = "Turismo com qualidade, tecnologia e atendimento humano.",
+  variant: "dark" | "light" | "brand" | "minimal" | "glow" = "dark"
+): StoreTemplateSection {
   return {
     type: "footer",
     visible: true,
     config: {
-      variant: "dark",
+      variant,
       company_name: "",
       description,
       quick_links_title: "Links uteis",

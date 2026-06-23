@@ -4,7 +4,7 @@ import type { PageSection, Theme } from "@/types";
 interface FooterConfig {
   company_name?: string;
   description?: string;
-  variant?: "dark" | "light" | "brand";
+  variant?: "dark" | "light" | "brand" | "minimal" | "glow";
   quick_links_title?: string;
   contact_title?: string;
   social_title?: string;
@@ -24,6 +24,7 @@ export function FooterSection({ section }: { section: PageSection; theme: Theme 
   const year = new Date().getFullYear();
   const variant = cfg.variant ?? "dark";
   const isLight = variant === "light";
+  const isGlow = variant === "glow";
   const whatsapp = cfg.whatsapp ?? cfg.whatsapp_number;
   const links = cfg.links?.length
     ? cfg.links
@@ -54,13 +55,52 @@ export function FooterSection({ section }: { section: PageSection; theme: Theme 
   const background =
     variant === "brand"
       ? "linear-gradient(135deg, var(--color-secondary), var(--color-primary))"
-      : isLight
-        ? "var(--color-background)"
-        : "var(--color-secondary)";
+      : isGlow
+        ? "#0b0f17"
+        : isLight
+          ? "var(--color-background)"
+          : "var(--color-secondary)";
+
+  // ── Minimal: compact, centered single-row footer ──────────────────────────
+  if (variant === "minimal") {
+    return (
+      <footer className="mt-auto border-t border-gray-200 bg-[var(--color-background)] px-4 py-12 text-center sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          {cfg.company_name && (
+            <p className="text-xl font-extrabold text-[var(--color-text)]" style={{ fontFamily: "var(--font-heading)" }}>
+              {cfg.company_name}
+            </p>
+          )}
+          {cfg.description && <p className="mx-auto mt-3 max-w-md text-sm text-[var(--color-text)]/60">{cfg.description}</p>}
+          <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {links.map((link) => (
+              <a key={`${link.href}-${link.label}`} href={safeHref(link.href)} className="text-sm font-medium text-[var(--color-text)]/70 transition hover:text-[var(--color-accent)]">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          {socialLinks.length > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              {socialLinks.map(({ label, href, icon: Icon }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-[var(--color-text)]/70 transition hover:-translate-y-0.5 hover:bg-[var(--color-accent)] hover:text-white">
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
+          )}
+          <p className="mt-8 text-xs text-[var(--color-text)]/50">&copy; {year} {cfg.company_name ?? "TuriApp"}. Todos os direitos reservados.</p>
+        </div>
+      </footer>
+    );
+  }
 
   return (
-    <footer className={`mt-auto border-t px-4 py-14 sm:px-6 lg:px-8 ${textMain} ${border}`} style={{ background }}>
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr_1fr_0.8fr]">
+    <footer className={`relative mt-auto overflow-hidden border-t px-4 py-14 sm:px-6 lg:px-8 ${textMain} ${border}`} style={{ background }}>
+      {isGlow && (
+        <div className="tf-glow pointer-events-none absolute -top-32 left-1/2 h-72 w-[40rem] -translate-x-1/2 rounded-full bg-[var(--color-accent)] opacity-25 blur-[120px]" />
+      )}
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr_1fr_0.8fr]">
         <div className="max-w-md">
           {cfg.company_name && (
             <p className="mb-3 text-2xl font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>
@@ -140,7 +180,7 @@ export function FooterSection({ section }: { section: PageSection; theme: Theme 
           )}
         </div>
       </div>
-      <div className={`mx-auto mt-10 max-w-7xl border-t pt-5 text-xs ${border} ${textMuted}`}>
+      <div className={`relative mx-auto mt-10 max-w-7xl border-t pt-5 text-xs ${border} ${textMuted}`}>
         &copy; {year} {cfg.company_name ?? "TuriApp"}. Todos os direitos reservados.
       </div>
     </footer>
