@@ -142,10 +142,10 @@ export function MfaSetup({ mandatory = false }: MfaSetupProps) {
           </CardTitle>
           <CardDescription>
             {hasFactor
-              ? "Ativada. Um app autenticador é exigido a cada login nesta conta."
+              ? "Ativada. O código do seu app autenticador (Google Authenticator, Authy, 1Password…) é exigido a cada login nesta conta."
               : mandatory
-              ? "Obrigatória para contas de super admin. Cadastre um app autenticador (Google Authenticator, Authy, 1Password) para continuar acessando o painel."
-              : "Opcional. Adicione uma camada extra de proteção à sua conta com um app autenticador."}
+              ? "Obrigatória para contas de super admin. Escaneie o QR code com o Google Authenticator (ou Authy, Microsoft Authenticator, 1Password) para continuar acessando o painel."
+              : "Opcional. Adicione uma camada extra de proteção escaneando o QR code com o Google Authenticator, Authy, Microsoft Authenticator ou 1Password."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
