@@ -132,10 +132,30 @@ Marque cada item:
 
 ---
 
-## 7. Pós-lançamento (recomendado, não bloqueia)
+## 7. Notas de segurança (ler antes de abrir ao público)
 
-- **Upstash Redis**: criar DB → preencher `UPSTASH_REDIS_REST_URL/TOKEN` → rate limit
-  passa a ser distribuído (proteção real contra abuso em escala).
+- **🟠 Rate limit distribuído (Upstash)** — sem `UPSTASH_REDIS_REST_URL/TOKEN`, o
+  rate limit é apenas in-memory **por instância serverless**. Na Vercel cada
+  instância tem seu próprio contador, então o limite efetivo se multiplica e não
+  segura abuso distribuído (login, checkout, OTP, API). **Configure o Upstash
+  antes de divulgar a plataforma** — é o único item de segurança que recomendo
+  tratar como pré-lançamento, não pós.
+- **Scripts customizados do tenant (`head_scripts`/pixels)** — o campo em
+  `/integracoes` injeta HTML/JS **sem sanitização** no storefront daquele tenant
+  (necessário para tags de terceiros). É restrito a `tenant_owner`/`tenant_admin`
+  e auditado a cada alteração, mas equivale a dar deploy no site do tenant. Por
+  isso: **MFA é obrigatório/recomendado para contas owner/admin** — uma conta
+  admin comprometida pode injetar script malicioso para os clientes daquele
+  tenant (não há vazamento cross-tenant; CSP e RLS continuam isolando).
+- **Rotação de segredos** — se a `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`,
+  `CRON_SECRET`, `VERCEL_API_TOKEN` ou `VAPID_PRIVATE_KEY` tiverem sido exibidas
+  fora do cofre (chat, screenshot, log), **rotacione antes do go-live**. ⚠️
+  Rotacionar `ENCRYPTION_KEY` invalida tudo já criptografado
+  (`tenant_payment_accounts`, chaves WhatsApp) — faça só com o banco ainda vazio
+  de credenciais ou planeje a re-criptografia.
+
+## 8. Pós-lançamento (recomendado, não bloqueia)
+
 - **Sentry**: criar projeto → `SENTRY_DSN` → erros monitorados.
 - **Ícones PWA**: trocar os placeholders em `public/icons/` por arte final (`node scripts/generate-icons.mjs` gera placeholders).
 - **Backups Supabase**: garantir plano com PITR (Point-in-Time Recovery) habilitado.

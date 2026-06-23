@@ -105,10 +105,22 @@ export async function proxy(request: NextRequest) {
 
   // ── Super admin panel ──────────────────────────────────────────────────────
   if (cleanHost === ADMIN_HOST) {
-    const response = NextResponse.rewrite(
-      new URL(`/(super-admin)${pathname}`, request.url)
-    );
-    return response;
+    // Drop any forged tenant headers — this branch bypasses updateSession (which
+    // strips them), and the admin tree must never trust a client-supplied tenant.
+    const adminHeaders = new Headers(request.headers);
+    adminHeaders.delete("x-tenant-id");
+    adminHeaders.delete("x-tenant-slug");
+
+    // The super-admin pages live at /admin/* (the (super-admin) route group is
+    // transparent in the URL, so /admin already resolves to them — no group-path
+    // rewrite needed). Forwarding as-is also keeps the auth redirects (/login,
+    // /mfa, /mfa-enroll) working on this host. Bare root → the dashboard.
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.rewrite(url, { request: { headers: adminHeaders } });
+    }
+    return NextResponse.next({ request: { headers: adminHeaders } });
   }
 
   // ── Tenant admin panel ─────────────────────────────────────────────────────

@@ -55,10 +55,16 @@ const ALLOWED_FRAME_ANCESTORS = Array.from(
   )
 ).join(" ");
 
+// 'unsafe-eval' is only needed by the dev bundler/React refresh. Production
+// builds don't eval, so we drop it there to shrink the XSS surface. 'unsafe-inline'
+// stays: Next injects inline bootstrap scripts and a full nonce migration is a
+// larger change tracked separately.
+const SCRIPT_EVAL = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const CSP = [
   "default-src 'self'",
   // Scripts: self + inline (needed for Next.js) + known CDNs
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://analytics.tiktok.com https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com",
+  `script-src 'self' 'unsafe-inline'${SCRIPT_EVAL} https://connect.facebook.net https://analytics.tiktok.com https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com`,
   // Styles: self + inline (Tailwind/CSS-in-JS)
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Fonts

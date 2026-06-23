@@ -8,8 +8,12 @@ import { FloatingWhatsAppButton } from "@/components/public/FloatingWhatsAppButt
 import { PublicHeader } from "@/components/public/PublicHeader";
 import type { NavItem, Theme } from "@/types";
 
+// Mirror of the proxy's storefront gate: a suspended/non-active tenant must not
+// render a storefront even if a tenant id reaches this layout by another path.
+const STOREFRONT_STATUSES = ["active", "trial"];
+
 interface TenantPublicData {
-  tenant: { name: string } | null;
+  tenant: { name: string; status: string } | null;
   theme: Theme | null;
   navItems: NavItem[];
   integrations: {
@@ -33,7 +37,7 @@ interface TenantPublicData {
 async function getTenantPublicData(tenantId: string): Promise<TenantPublicData> {
   const supabase = createServiceClient();
   const [{ data: tenant }, { data: theme }, { data: integrations }, { data: navItems }] = await Promise.all([
-    supabase.from("tenants").select("name").eq("id", tenantId).single(),
+    supabase.from("tenants").select("name, status").eq("id", tenantId).single(),
     supabase.from("themes").select("*").eq("tenant_id", tenantId).single(),
     supabase
       .from("tenant_integrations")
@@ -66,6 +70,10 @@ export default async function PublicLayout({
   if (!tenantId) notFound();
 
   const { tenant, theme, navItems, integrations } = await getTenantPublicData(tenantId);
+
+  // A storefront only exists for active/trial tenants. Suspended or unknown
+  // tenants 404 here too — this is the second layer behind the proxy's gate.
+  if (!tenant || !STOREFRONT_STATUSES.includes(tenant.status)) notFound();
 
   const cssVars = theme
     ? {
